@@ -156,6 +156,7 @@ Others are in the pipeline, like:
 - mysql with mysql.connector
 - mssql with pymssql
 - db2 with ibm_db_dbi
+
 Just try your database and see what happens.
 You have to make sure that your driver is installed on your system.
 

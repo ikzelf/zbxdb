@@ -4,9 +4,19 @@
                                 a reference to the checks"""
 """NOTE: a section whose name contains 'discover' is considered to be handled
            as a special case for LLD -> json arrays
+   Drivers are loaded dynamically. If the driver is not installed this will
+   raise an error and zbxdb will stop. Most problematic is the fact that all
+   drivers seem to have their own results like errorcode errormsg. Sometimes
+   only an errormsg is given, no code, sometimes the code is fully numeric,
+   sometimes alphabetic. The template assumes that the errorcode is numeric 
+   so zbxdb tries to extract a numeric part from the errorcode, if any.
+
+   Do you need a new driver, help me with testing.
+   (@) Ronald Rood - Ciber
 """
 # changes: rrood 0.01:20150915 STARTTIME with a copy of zbxora-0.44
-VERSION = "0.01"
+# changes: rrood 0.02:20150917 added _mssql - no testing
+VERSION = "0.02"
 import json
 import collections
 import datetime
@@ -63,7 +73,7 @@ printf("%s %s found db_type=%s, driver %s; checking for driver\n",
 try:
   db= __import__(DB_DRIVER)
 except:
-  printf("%s supported are oracle(cx_Oracle), postgres(psycopg2), mysql(mysql.connector), mssql(pymssql), db2(ibm_db_dbi)\n", ME[0])
+  printf("%s supported are oracle(cx_Oracle), postgres(psycopg2), mysql(mysql.connector), mssql(pymssql/_mssql), db2(ibm_db_dbi)\n", ME[0])
   printf("Don't forget to install the drivers first ...\n")
   raise
 
@@ -328,6 +338,9 @@ while True:
                                     if DB_DRIVER == "psycopg2":
                                         errno= int(''.join(c for c in err.pgcode if c.isdigit()))
                                         ermsg= err.pgerror
+                                    elif DB_DRIVER == "_mssql":
+                                        errno= err.number
+                                        ermsg= err.message
                                     else:
                                         errno= err.code
                                         ermsg= err.message
@@ -401,6 +414,9 @@ while True:
             else:
                 errno= int(''.join(c for c in err.pgcode if c.isdigit()))
                 ermsg= err.pgerror
+        elif DB_DRIVER == "_mssql":
+            errno= err.number
+            ermsg= err.message
         else:
             x, = err.args
             errno= x.code
