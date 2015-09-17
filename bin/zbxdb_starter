@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+ME=${0##*/}
+
+if [ -f log/$ME.lck ]
+then
+  PID=`cat log/$ME.lck`
+  ps -fp$PID >/dev/null 2>&1
+  if [ $? -eq 0 ]
+  then
+    echo "$ME previous still running" >&2
+    exit 0
+  fi
+fi
+echo $$ > log/$ME.lck
+
+MON_HOME=$1
+
+if [ -z "$ORACLE_HOME" ]
+then
+  . $HOME/.bash_profile
+fi
+
+cd $MON_HOME
+
+monitors=`ls etc/zbxora.*.cfg`
+for mon in $monitors
+do
+  if [ -w $mon ]
+  then
+    ps -fu$UID|grep -v grep|grep $mon >/dev/null 2>&1
+    procs=$?
+    echo mon $mon `ps -fu$UID|grep -v grep|grep $mon` $procs
+    if [ $procs -ne 0 ]
+    then
+      id=$(basename $mon)
+      echo "`date ` Starting $mon" >>log/$ME.log
+      nohup zbxora.py -c $mon >log/$id.log 2>&1 &
+    fi
+    sleep 1
+  fi
+done
+rm log/$ME.lck

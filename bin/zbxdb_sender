@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+ME=${0##*/}
+NOW=$(date +%Y%m%d-%H%M)
+NOWD=$(date +%a)
+
+ZBXORA_OUT=$1
+
+mv $ZBXORA_OUT/* $HOME/$ME/in
+cd $HOME/$ME/in
+{
+  date
+  cnt=`ls|wc -l`
+  if [ $cnt -gt 0 ]
+  then
+    cat *| zabbix_sender -z 127.0.0.1 -T -i -
+    tar -cf - *|gzip -9 >../archive/zbx_${NOW}.tar.gz
+    rm *
+  fi
+} >>$HOME/log/$ME.$NOWD.log 2>&1
+find ../archive -type f -mtime +2 |xargs rm -f
+find $HOME/log/$ME.*.log -mtime +5|xargs rm 2>/dev/null
