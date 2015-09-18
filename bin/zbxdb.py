@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """options: -c/--cfile configFile
                      configFile contains config for 1 database and
-                                a reference to the checks"""
+                                a reference to the checks directory"""
 """NOTE: a section whose name contains 'discover' is considered to be handled
            as a special case for LLD -> json arrays
    Drivers are loaded dynamically. If the driver is not installed this will
@@ -73,7 +73,8 @@ printf("%s %s found db_type=%s, driver %s; checking for driver\n",
 try:
   db= __import__(DB_DRIVER)
 except:
-  printf("%s supported are oracle(cx_Oracle), postgres(psycopg2), mysql(mysql.connector), mssql(pymssql/_mssql), db2(ibm_db_dbi)\n", ME[0])
+  printf("%s supported will be oracle(cx_Oracle), postgres(psycopg2), mysql(mysql.connector), mssql(pymssql/_mssql), db2(ibm_db_dbi)\n", ME[0])
+  printf("%s tested are oracle(cx_Oracle), postgres(psycopg2)\n", ME[0])
   printf("Don't forget to install the drivers first ...\n")
   raise
 
@@ -353,6 +354,14 @@ while True:
                                         datetime.datetime.fromtimestamp(time.time()), \
                                         section, key, errno, ermsg.strip().replace('\n',' ').replace('\r',' ') )
                                     if errno in(28, 1012, 3113, 3114, 3135):
+                                        """ idea here is to close the connection
+                                            when certain fatal exceptions occurred
+                                            like - session killed
+                                                 - instance down
+                                                 - database down
+                                                 - session disconnected
+                                            so we can re-create a clean session
+                                        """
                                         raise
                         # end of a section
                         output(HOSTNAME, ME[0] + "[query," + section + ",,ela]", \
@@ -422,11 +431,19 @@ while True:
             errno= x.code
             ermsg= x.message
         ELAPSED = timer() - START
-        if errno not in (1012, 3114):
-            # from a killed session or similar
+        if errno not in (28, 1012, 3113, 3114, 3135):
+            """
+            NOT from a killed session or similar, so this was not a
+            connect error but a returned session
+            """
             CONNECTERROR += 1
         output(HOSTNAME, ME[0] + "[connect,status]", errno)
         if errno == 15000:
+            """
+            a special case for Oracle ASM instance when connecting
+            using the NORMAL role. This should be SYSDBA since an
+            ASM instance refuses NORMAL connections.
+            """
             printf('%s: connection error: %s for %s@%s %s\n', \
                 datetime.datetime.fromtimestamp(time.time()), \
                 ermsg.strip().replace('\n', ' ').replace('\r', ' '), \
