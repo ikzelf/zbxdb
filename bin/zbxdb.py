@@ -23,12 +23,13 @@ import datetime
 import time
 import sys
 import os
-import ConfigParser
+import configparser
 import resource
 import gc
 import subprocess
 from optparse import OptionParser
 from timeit import default_timer as timer
+import platform
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -41,13 +42,56 @@ def output(host, key, values):
     OUTF.write(host + " " + key + " " + str(timestamp) + " " + str(values)+ "\n")
     OUTF.flush()
 
+def connection_info( dbtype ):
+    conn_info = {'dbversion': "", 'sid': 0, 'itype': "rdbms", 
+                 'serial': 0, 'dbrol': "", 'uname': "",
+                 'iname': ""}
+    CURS = conn.cursor()
+    try:
+        if dbtype == "oracle":
+            CURS.execute("""select substr(i.version,0,instr(i.version,'.')-1),
+              s.sid, s.serial#, p.value instance_type, i.instance_name
+              , s.username
+              from v$instance i, v$session s, v$parameter p 
+              where s.sid = (select sid from v$mystat where rownum = 1)
+              and p.name = 'instance_type'""" )
+        elif dbtype == "postgres":
+            CURS.execute("select substring(version from '[0-9]+') from version()")
+
+        DATA = CURS.fetchone()
+        conn_info['dbversion'] = DATA[0]
+
+        if dbtype == "oracle":
+            conn_info['sid'] = DATA[1]
+            conn_info['serial'] = DATA[2]
+            conn_info['itype'] = DATA[3]
+            conn_info['iname'] = DATA[4]
+            conn_info['uname'] = DATA[5]
+
+    except db.DatabaseError as oerr:
+        ERROR, = oerr.args
+        if ERROR.code == 904:
+            conn_info['dbversion'] = "pre9"
+        else:
+            conn_info['dbversion'] = "unk"
+    if dbtype == "oracle" and ITYPE == "RDBMS":
+        CURS.execute("""select database_role from v$database""" )
+        DATA = CURS.fetchone()
+        conn_info['dbrol'] = DATA[0]
+    elif dbtype == "oracle":
+        conn_info['dbrol'] = "asm"
+    else:
+        conn_info['dbrol'] = "primary"
+    CURS.close()
+    return conn_info
+
 ME = os.path.splitext(os.path.basename(__file__))
 PARSER = OptionParser()
 PARSER.add_option("-c", "--cfile", dest="configfile", default=ME[0]+".cfg",
                   help="Configuration file", metavar="FILE")
 (OPTIONS, ARGS) = PARSER.parse_args()
 
-CONFIG = ConfigParser.RawConfigParser()
+CONFIG = configparser.RawConfigParser()
 if not os.path.exists(OPTIONS.configfile):
     raise ValueError("Configfile " + OPTIONS.configfile + " does not exist")
 
@@ -56,6 +100,7 @@ CONFIG.readfp(INIF)
 DB_URL = CONFIG.get(ME[0], "db_url")
 DB_TYPE = CONFIG.get(ME[0], "db_type")
 DB_DRIVER = CONFIG.get(ME[0], "db_driver")
+INSTANCE_TYPE = CONFIG.get(ME[0], "instance_type")
 USERNAME = CONFIG.get(ME[0], "username")
 PASSWORD = CONFIG.get(ME[0], "password")
 ROLE = CONFIG.get(ME[0], "role")
@@ -68,6 +113,11 @@ TO_ZABBIX_METHOD = CONFIG.get(ME[0], "to_zabbix_method")
 TO_ZABBIX_ARGS = os.path.expandvars(CONFIG.get(ME[0], "to_zabbix_args")) + " " + OUT_FILE
 INIF.close()
 
+STARTTIME = int(time.time())
+printf("%s start python-%s %s-%s pid=%s Connecting for hostname %s...\n", \
+    datetime.datetime.fromtimestamp(STARTTIME), \
+    platform.python_version(), ME[0], VERSION, os.getpid(), HOSTNAME
+      )
 printf("%s %s found db_type=%s, driver %s; checking for driver\n",
     datetime.datetime.fromtimestamp(time.time()), ME[0], DB_TYPE, DB_DRIVER)
 try:
@@ -86,7 +136,6 @@ CONNECTCOUNTER = 0
 CONNECTERROR = 0
 QUERYCOUNTER = 0
 QUERYERROR = 0
-STARTTIME = int(time.time())
 printf("%s start %s-%s pid=%s Connecting...\n", \
     datetime.datetime.fromtimestamp(time.time()), \
     ME[0], VERSION, os.getpid())
@@ -102,13 +151,14 @@ SLEEPER = 1
 PERROR = 0
 while True:
     try:
-        CONFIG = ConfigParser.RawConfigParser()
+        CONFIG = configparser.RawConfigParser()
         INIF = open(OPTIONS.configfile, 'r')
         CONFIG.readfp(INIF)
         DB_URL = CONFIG.get(ME[0], "db_url")
         USERNAME = CONFIG.get(ME[0], "username")
         PASSWORD = CONFIG.get(ME[0], "password")
         ROLE = CONFIG.get(ME[0], "role")
+        INSTANCE_TYPE = CONFIG.get(ME[0], "instance_type")
         OUT_DIR = os.path.expandvars(CONFIG.get(ME[0], "out_dir"))
         OUT_FILE = os.path.join(OUT_DIR, str(os.path.splitext(os.path.basename(OPTIONS.configfile))[0]) + ".zbx")
         HOSTNAME = CONFIG.get(ME[0], "hostname")
@@ -127,76 +177,41 @@ while True:
         if ROLE.upper() == "SYSDBA":
             OMODE = db.SYSDBA
 
-        if SLEEPC == 0:
-            printf('%s connecting db_url:%s, type:%s, user:%s as %s\n',
-                    datetime.datetime.fromtimestamp(time.time()), \
-                    DB_URL, DB_TYPE, USERNAME, ROLE)
         if DB_TYPE == "oracle":
             CS = USERNAME + "/" + PASSWORD + "@" + DB_URL + " as " + ROLE.upper()
         elif DB_TYPE == "postgres":
           CS = "postgresql://" + USERNAME + ":" + PASSWORD + "@" + DB_URL
+        else:
+            printf('%s DB_TYPE %s not -yet- implemented\n', 
+                   datetime.datetime.fromtimestamp(time.time()),
+                   DB_TYPE)
+            raise
 
-        # print CS
+        if SLEEPC == 0:
+            printf('%s connecting db_url:%s, type:%s, user:%s as %s\n',
+                    datetime.datetime.fromtimestamp(time.time()), \
+                    DB_URL, DB_TYPE, USERNAME, ROLE)
 
         START = timer()
         with db.connect( CS ) as conn:
             CONNECTCOUNTER += 1
             output(HOSTNAME, ME[0]+"[connect,status]", 0)
             CURS = conn.cursor()
-            try:
-                if DB_TYPE == "oracle":
-                    CURS.execute("""select substr(i.version,0,instr(i.version,'.')-1),
-                      s.sid, s.serial#, p.value instance_type, i.instance_name
-                      , s.username
-                      from v$instance i, v$session s, v$parameter p 
-                      where s.sid = (select sid from v$mystat where rownum = 1)
-                      and p.name = 'instance_type'""" )
-                elif DB_TYPE == "postgres":
-                    CURS.execute("select substring(version from '[0-9]+') from version()")
-
-                DATA = CURS.fetchone()
-                DBVERSION = DATA[0]
-
-                if DB_TYPE == "oracle":
-                    MYSID = DATA[1]
-                    MYSERIAL = DATA[2]
-                    ITYPE = DATA[3]
-                    INAME = DATA[4]
-                    UNAME = DATA[5]
-                else:
-                    MYSID = 0
-                    MYSERIAL = 0
-                    ITYPE = "rdbms"
-                    INAME = ""
-                    UNAME = ""
-
-            except db.DatabaseError as oerr:
-                ERROR, = oerr.args
-                if ERROR.code == 904:
-                    DBVERSION = "pre9"
-                else:
-                    DBVERSION = "unk"
-            if DB_TYPE == "oracle" and ITYPE == "RDBMS":
-                CURS.execute("""select database_role from v$database""" )
-                DATA = CURS.fetchone()
-                DBROL = DATA[0]
-            elif DB_TYPE == "oracle":
-                DBROL = "asm"
-            else:
-                DBROL = "primary"
-            CURS.close()
+            connect_info = connection_info ( DB_TYPE )
 
             printf('%s connected db_url %s type %s db_role %s version %s\n%s user %s %s sid,serial %d,%d instance %s as %s\n',
                     datetime.datetime.fromtimestamp(time.time()), \
-                    DB_URL, ITYPE, DBROL, DBVERSION, \
+                    DB_URL, connect_info['itype'], connect_info['dbrol'], connect_info['dbversion'], \
                     datetime.datetime.fromtimestamp(time.time()), \
-                    USERNAME, UNAME, MYSID, MYSERIAL, \
-                    INAME, \
+                    USERNAME, connect_info['uname'], connect_info['sid'], connect_info['serial'], \
+                    connect_info['iname'], \
                     ROLE)
-            if  DBROL == "PHYSICAL STANDBY":
-                CHECKSFILE = os.patch.join(CHECKSFILE_PREFIX, DB_TYPE, "standby" + "." + DBVERSION+".cfg")
+            if  connect_info['dbrol'] in ["PHYSICAL STANDBY", "MASTER"]:
+                CHECKSFILE = os.patch.join(CHECKSFILE_PREFIX, DB_TYPE, "standby" + 
+                                           "." + connect_info['dbversion'] +".cfg")
             else:
-                CHECKSFILE = os.path.join(CHECKSFILE_PREFIX, DB_TYPE  , DBROL + "." + DBVERSION+".cfg")
+                CHECKSFILE = os.path.join(CHECKSFILE_PREFIX, DB_TYPE  , 
+                                          connect_info['dbrol'] + "." + connect_info['dbversion']+".cfg")
 
             files= [ CHECKSFILE ]
             CHECKFILES = [ [ CHECKSFILE, 0]  ]
@@ -248,7 +263,7 @@ while True:
                         z=CHECKFILES[i]
                         CHECKSFILE = z[0]
                         CHECKSF = open(CHECKSFILE, 'r')
-                        CHECKS = ConfigParser.RawConfigParser()
+                        CHECKS = configparser.RawConfigParser()
                         CHECKS.readfp(CHECKSF)
                         CHECKSF.close()
                         z[1]= os.stat(CHECKSFILE).st_mtime
@@ -262,7 +277,7 @@ while True:
                             E = {"{#SECTION}": section}
                             SECTIONS_LIST.append(E)
                             x = dict(CHECKS.items(section))
-                            for key, sql  in sorted(x.iteritems()):
+                            for key, sql  in sorted(x.items()):
                                 if sql and key != "minutes":
                                     d = collections.OrderedDict()
                                     d = {"{#SECTION}": section, "{#KEY}": key}
@@ -288,7 +303,7 @@ while True:
                         ## time to run the checks again from this section
                         x = dict(CHECKS.items(section))
                         CURS = conn.cursor()
-                        for key, sql  in sorted(x.iteritems()):
+                        for key, sql  in sorted(x.items()):
                             if sql and key != "minutes":
                                 # printf ("%s DEBUG Running %s.%s\n", \
                                     # datetime.datetime.fromtimestamp(time.time()), section, key)
@@ -335,7 +350,7 @@ while True:
                                         key + ",ela]", ELAPSED)
                                     output(HOSTNAME, ME[0] + "[query," + section + "," + \
                                         key + ",fetch]", fetchela)
-                                except db.DatabaseError, err:
+                                except db.DatabaseError as err:
                                     if DB_DRIVER == "psycopg2":
                                         errno= int(''.join(c for c in err.pgcode if c.isdigit()))
                                         ermsg= err.pgerror
@@ -415,7 +430,7 @@ while True:
                     time.sleep(1)
                 CONMINS = CONMINS + 1 # not really mins since the checks could
                 #                       have taken longer than 1 minute to complete
-    except db.DatabaseError, err:
+    except db.DatabaseError as err:
         if DB_DRIVER == "psycopg2":
             if err.pgcode is None:
                 errno= 13
