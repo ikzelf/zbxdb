@@ -28,7 +28,7 @@ from argparse import ArgumentParser
 from timeit import default_timer as timer
 import platform
 from pdb import set_trace
-VERSION = "0.06"
+VERSION = "0.07"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -41,6 +41,10 @@ def output(host, ikey, values):
     OUTF.write(host + " " + ikey + " " + str(timestamp) + " " + str(values)+ "\n")
     OUTF.flush()
 
+class MyConfigParser(configparser.RawConfigParser):
+    def __init__(self):
+      configparser.RawConfigParser.__init__(self, inline_comment_prefixes=('#', ';'))
+
 def get_config(filename):
     """read the specified configuration file"""
     config = {'db_url': "", 'db_type': "", 'db_driver': "", 'instance_type': "rdbms",
@@ -48,7 +52,7 @@ def get_config(filename):
               'out_dir': "", 'out_file': "", 'hostname': "", 'checkfile_prefix': "",
               'site_checks': "", 'to_zabbic_method': "", 'to_zabbix_args': "",
               'sqltimeout': 0.0}
-    CONFIG = configparser.RawConfigParser()
+    CONFIG = MyConfigParser()
     if not os.path.exists(filename):
         raise ValueError("Configfile " + filename + " does not exist")
 
