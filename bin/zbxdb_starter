@@ -1,10 +1,66 @@
 #!/usr/bin/env bash
 ME=${0##*/}
 
+if [ -z "$ZBX_HOME" ]
+then
+  . $HOME/.bash_profile
+fi
+
+if [ -z "$ZBX_HOME" ]
+then
+  ZBX_HOME=$1
+fi
+
+if [ -z "$ZBX_HOME" ]
+then
+  echo "$ME specify ZBX_HOME in \$HOME/.bash_profile or as first argument of $ME"
+  exit 1
+fi >&2
+
+if [ ! -d $ZBX_HOME ]
+then
+  echo "$ME directory $ZBX_HOME does not exist"
+  exit 1
+fi >&2
+if [ ! -r $ZBX_HOME ]
+then
+  echo "$ME directory $ZBX_HOME not readable"
+  exit 1
+fi >&2
+if [ ! -x $ZBX_HOME ]
+then
+  echo "$ME directory $ZBX_HOME not accessible"
+fi >&2
+if [ ! -d $ZBX_HOME/log ]
+then
+  echo "$ME directory $ZBX_HOME/log does not exist"
+  exit 1
+fi >&2
+if [ ! -d $ZBX_HOME/etc ]
+then
+  echo "$ME directory $ZBX_HOME/etc does not exist"
+  exit 1
+fi >&2
+
+ls -l $ZBX_HOME/etc/zbxdb.*.cfg >/dev/null 2>&1
+if [ $? -ne 0 ]
+then
+  echo "$ME no config files in $ZBX_HOME/etc/"
+  exit 1
+fi >&2
+
+if [ ! -d $ZBX_HOME/etc/zbxdb_checks ]
+then
+  echo "$ME no zbxdb_checks directory in $ZBX_HOME/etc/"
+  exit 1
+fi >&2
+
+cd $ZBX_HOME
+
 if [ -f log/$ME.lck ]
 then
   PID=`cat log/$ME.lck`
-  ps -fp$PID >/dev/null 2>&1
+  ps -fp$PID |grep -v grep|grep $ME>/dev/null 2>&1
   if [ $? -eq 0 ]
   then
     echo "$ME previous still running" >&2
@@ -13,16 +69,8 @@ then
 fi
 echo $$ > log/$ME.lck
 
-MON_HOME=$1
 
-if [ -z "$ORACLE_HOME" ]
-then
-  . $HOME/.bash_profile
-fi
-
-cd $MON_HOME
-
-monitors=`ls etc/zbxora.*.cfg`
+monitors=`ls etc/zbxdb.*.cfg`
 for mon in $monitors
 do
   if [ -w $mon ]
@@ -34,9 +82,10 @@ do
     then
       id=$(basename $mon)
       echo "`date ` Starting $mon" >>log/$ME.log
-      nohup zbxora.py -c $mon >log/$id.log 2>&1 &
+      nohup zbxdb.py -c $mon >log/$id.log 2>&1 &
     fi
     sleep 1
   fi
 done
+
 rm log/$ME.lck

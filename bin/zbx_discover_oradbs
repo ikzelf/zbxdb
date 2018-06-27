@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+ME=${0##*/}
+ME_FILE=`type $ME|sed "s/[()]//g"|awk '{print $NF}'`
+ME_DIR=`dirname $ME_FILE`
+list_listener()
+{
+	SITE=$1
+	CLUSTER=`echo $2|sed 's/"//g'`
+  shift 2
+	NODES=$*
+	{
+		for node in $NODES
+		do
+			echo node $node >&2
+      echo "scp -p ${ME_FILE}_remote ${node}:/tmp/"
+      scp -p ${ME_FILE}_remote ${node}:/tmp/
+			< /dev/null ssh -tt $node /tmp/${ME}_remote 
+		done
+	} |grep Instance|awk '{print $2}'|cut -f2 -d\"|
+      if [ -n "${CLUSTER}" ]
+      then 
+        sed "s/[0-9]$//"
+      else
+        cat
+      fi |
+      sed "s/[+-]//"|sort|uniq|
+      if [ -n "${CLUSTER}" ]
+      then
+        sed "s/^/${SITE}_${CLUSTER}_/"
+      else
+        sed "s/^/${SITE}_/"
+      fi
+}
+
+cat $HOME/etc/$ME.cfg|grep -v " *#"|while read group cluster nodes
+do
+  echo nodes $nodes >&2
+  list_listener "$group" "$cluster" "$nodes"
+done | awk 'BEGIN { printf ("{ \"data\":[\n"); comma=" "  }
+          { printf ("%s\"{#DB_NAME}\":\"%s\"\n", comma, $0); comma="," }
+         END {printf ("]}\n") }'

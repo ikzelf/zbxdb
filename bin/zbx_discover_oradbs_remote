@@ -1,0 +1,6 @@
+tns=`ps -ef|grep tnslsnr|grep -v grep|awk '{print $8}'|sort|uniq|tail -1`
+echo tns=$tns
+dir=$(dirname $tns)
+echo "dir=$dir"
+export ORACLE_HOME=$(dirname $dir)
+$ORACLE_HOME/bin/lsnrctl status

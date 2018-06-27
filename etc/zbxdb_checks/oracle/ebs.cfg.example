@@ -1,0 +1,132 @@
+# vim: syntax=sql
+[ebs_discovery_60m]
+minutes: 60
+ebs.concmanager: with tabje as (
+        select B.MAX_PROCESSES TARGET,
+               B.RUNNING_PROCESSES ACTUAL,
+               (select count(phase_code)
+                  from apps.fnd_concurrent_worker_requests fcwr
+                 where fcwr.Concurrent_Queue_ID = b.Concurrent_Queue_ID
+                   and fcwr.Queue_Application_ID =  B.APPLICATION_ID
+                   and fcwr.phase_code = 'R') RUNNING ,
+               (select count(phase_code)
+                  from apps.fnd_concurrent_worker_requests fcwr
+                 where fcwr.Concurrent_Queue_ID = b.Concurrent_Queue_ID
+                   and fcwr.Queue_Application_ID =  B.APPLICATION_ID
+                   and fcwr.Phase_Code = 'P'
+                   and fcwr.hold_flag != 'Y'
+                   and fcwr.requested_start_date <= sysdate) PENDING,
+               t.USER_CONCURRENT_QUEUE_NAME CONCMANAGER
+            from apps.FND_CONCURRENT_QUEUES_TL T
+               , apps.FND_CONCURRENT_QUEUES B
+           where B.APPLICATION_ID = T.APPLICATION_ID
+             and B.CONCURRENT_QUEUE_ID = T.CONCURRENT_QUEUE_ID
+             and T.LANGUAGE = userenv('LANG')
+        )
+        select concmanager "{#CONCMANAGER}"
+        from tabje
+
+ebs.ehist: select event "{#EVENT}", wait_time_milli "{#WAIT_TIME_MILLI}"
+	from v$event_histogram where event in ( 'db file sequential read', 'enq: TX - row lock contention')
+
+[ebs_01m]
+minutes: 01
+ebs.online: select 'ebs.online.['||instance_name||
+	    ','||decode(s.username, 'APEX_PUBLIC_USER','apex','apps')||']' key, count(*) value
+	from gv$instance i, gv$session s
+	where i.inst_id = s.inst_id
+	and s.username like 'A%'
+	group by instance_name, decode(s.username,'APEX_PUBLIC_USER','apex','apps')
+
+ehist: select '"ebs.ehist.['||event||','||wait_time_milli||']"', wait_count 
+	from v$event_histogram where event in( 'db file sequential read','enq: TX - row lock contention')
+
+[ebs_10m]
+minutes: 10
+ebs.concmgr: select 'ebs.costmgr.[count]', count(*) 
+	from (
+	SELECT   cr.request_id
+	,        u.user_name                                        "Requestor"
+	,        cp.user_concurrent_program_name                    "Program"
+	,        cr.request_date                                    "Started"
+	,        SYSDATE                                            "Now"
+	,        cr.requested_start_date                            "Next Run", sysdate
+	,        cr.actual_completion_date                          "Last Completed"
+	,        TRIM(pl.meaning) phase
+	,        TRIM(sl.meaning) status
+	,        cr.completion_text
+	,        r.responsibility_name
+	,        cr.logfile_name
+	FROM     apps.fnd_concurrent_requests    cr
+	,        apps.fnd_concurrent_programs_vl cp
+	,        apps.fnd_lookups                pl
+	,        apps.fnd_lookups                sl
+	,        apps.fnd_user                   u
+	,        apps.fnd_responsibility_vl      r
+	WHERE    pl.lookup_type             = 'CP_PHASE_CODE'
+	AND      pl.lookup_code             = cr.phase_code
+	AND      sl.lookup_type             = 'CP_STATUS_CODE'
+	AND      sl.lookup_code             = cr.status_code
+	AND      u.user_id                  = cr.requested_by
+	AND      cr.program_application_id  = cp.application_id
+	AND      cr.concurrent_program_id   = cp.concurrent_program_id
+	AND      r.responsibility_id        = cr.responsibility_id
+	AND      cr.concurrent_program_id   = 33733     -- Cost Manager (CMCTCM)
+	AND      cr.program_application_id  = 702
+	AND    ( cr.status_code             = 'I'
+	     AND cr.phase_code              = 'P' -- Pending
+	  OR
+		 cr.status_code             = 'R'
+	     AND cr.phase_code              = 'R' -- Running
+	       )
+	)
+
+ebs.paul.truncATP: SELECT 'XXX_Truncate_ATP', request_id
+	FROM   ( --
+		 SELECT   RANK() OVER ( ORDER BY request_id DESC ) rank
+		 ,        request_id
+		 ,        actual_completion_date
+		 ,        status_code
+		 FROM     apps.fnd_concurrent_requests
+		 WHERE    phase_code             = 'C'
+		 AND      program_application_id = 20003
+		 AND      concurrent_program_id  = 160342
+	       ) iv
+	WHERE    rank        = 1
+	AND      status_code = 'E'
+
+[ebs_60m]
+minutes: 60
+concmanager: with tabje as (
+	select B.MAX_PROCESSES TARGET,
+	       B.RUNNING_PROCESSES ACTUAL,
+	       (select count(phase_code) 
+		  from apps.fnd_concurrent_worker_requests fcwr 
+		 where fcwr.Concurrent_Queue_ID = b.Concurrent_Queue_ID 
+		   and fcwr.Queue_Application_ID =  B.APPLICATION_ID 
+		   and fcwr.phase_code = 'R') RUNNING ,
+	       (select count(phase_code) 
+		  from apps.fnd_concurrent_worker_requests fcwr 
+		 where fcwr.Concurrent_Queue_ID = b.Concurrent_Queue_ID 
+		   and fcwr.Queue_Application_ID =  B.APPLICATION_ID  
+		   and fcwr.Phase_Code = 'P' 
+		   and fcwr.hold_flag != 'Y' 
+		   and fcwr.requested_start_date <= sysdate) PENDING,
+	       t.USER_CONCURRENT_QUEUE_NAME CONCMANAGER 
+	    from apps.FND_CONCURRENT_QUEUES_TL T
+	       , apps.FND_CONCURRENT_QUEUES B
+	   where B.APPLICATION_ID = T.APPLICATION_ID
+	     and B.CONCURRENT_QUEUE_ID = T.CONCURRENT_QUEUE_ID
+	     and T.LANGUAGE = userenv('LANG')
+	)
+	select '"ebs.concmanager.['||concmanager||',target]"', target
+	from tabje
+	union all
+	select '"ebs.concmanager.['||concmanager||',actual]"', actual
+	from tabje
+	union all
+	select '"ebs.concmanager.['||concmanager||',running]"', running
+	from tabje
+	union all
+	select '"ebs.concmanager.['||concmanager||',pending]"', pending
+	from tabje
