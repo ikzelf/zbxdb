@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+ps -fu$UID|grep -v grep|grep zbxdb.py|wc -l
+ps -fu$UID|grep -v grep|grep zbxdb.py|awk '{print $2}'|xargs kill
+sleep 1
+ps -fu$UID|grep -v grep|grep zbxdb.py|wc -l
