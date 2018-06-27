@@ -23,11 +23,12 @@ import resource
 import gc
 import subprocess
 import threading
+import importlib
 from argparse import ArgumentParser
 from timeit import default_timer as timer
 import platform
 from pdb import set_trace
-VERSION = "0.05"
+VERSION = "0.06"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -35,29 +36,10 @@ def printf(format, *args):
     sys.stdout.flush()
 
 def output(host, ikey, values):
-    """uniform way to generate the output"""
+    """uniform way to generate the output for items"""
     timestamp = int(time.time())
     OUTF.write(host + " " + ikey + " " + str(timestamp) + " " + str(values)+ "\n")
     OUTF.flush()
-
-def errorcode(driver, excep):
-    """pass exception code and message from various drivers in standard way"""
-    if driver == 'psycopg2':
-        return excep.pgcode, excep.args[0]
-    elif driver == 'Cx_Oracle':
-        ERROR, = dberr.args
-        return ERROR.code, excep.args[0]
-
-def error_needs_new_session(driver, code):
-    """some errors justify a new database connection. In that case return true"""
-    if driver == "Cx_Oracle":
-        if code in(28, 1012, 1041, 3113, 3114, 3135):
-            return True
-        if code == 15000:
-            printf('%s: asm requires sysdba role\n', \
-            datetime.datetime.fromtimestamp(time.time()))
-            return True
-    return False
 
 def get_config(filename):
     """read the specified configuration file"""
@@ -113,68 +95,6 @@ def get_config(filename):
         config['sqltimeout'] = 60.0
     return config
 
-def connection_info(dbtype):
-    """get connection info from connected database"""
-    conn_info = {'dbversion': "", 'sid': 0, 'itype': "rdbms",
-                 'serial': 0, 'dbrol': "", 'uname': "",
-                 'iname': ""}
-    C = conn.cursor()
-    try:
-        if dbtype == "oracle":
-            C.execute("""select substr(i.version,0,instr(i.version,'.')-1),
-              s.sid, s.serial#, p.value instance_type, i.instance_name
-              , s.username
-              from v$instance i, v$session s, v$parameter p 
-              where s.sid = (select sid from v$mystat where rownum = 1)
-              and p.name = 'instance_type'""")
-        elif dbtype == "postgres":
-            C.execute("select substring(version from '[0-9]+') from version()")
-
-        DATA = C.fetchone()
-
-        if dbtype == "oracle":
-            conn_info['dbversion'] = DATA[0]
-            conn_info['sid'] = DATA[1]
-            conn_info['serial'] = DATA[2]
-            conn_info['itype'] = DATA[3]
-            conn_info['iname'] = DATA[4]
-            conn_info['uname'] = DATA[5]
-        elif dbtype == "postgres":
-            conn_info['dbversion'] = DATA[0]
-
-    except db.DatabaseError as dberr:
-        ecode, emsg = errorcode(config['db_driver'], dberr)
-        if ecode == 904:
-            conn_info['dbversion'] = "pre9"
-        else:
-            conn_info['dbversion'] = "unk"
-
-    if dbtype == "oracle": 
-        if conn_info['itype'] == "RDBMS":
-            C.execute("""select database_role from v$database""")
-            DATA = C.fetchone()
-            conn_info['dbrol'] = DATA[0]
-        else:
-            conn_info['dbrol'] = "asm"
-    elif dbtype == "postgres":
-        C.execute("select pg_backend_pid()")
-        DATA = C.fetchone()
-        conn_info['sid'] = DATA[0]
-        C.execute("SELECT current_database()")
-        DATA = C.fetchone()
-        conn_info['iname'] = DATA[0]
-        C.execute("SELECT current_user")
-        DATA = C.fetchone()
-        conn_info['uname'] = DATA[0]
-        C.execute("select pg_is_in_recovery()")
-        DATA = C.fetchone()
-        if not DATA[0]:
-            conn_info['dbrol'] = "primary"
-        else:
-            conn_info['dbrol'] = "slave"
-    C.close()
-    return conn_info
-
 ME = os.path.splitext(os.path.basename(__file__))
 STARTTIME = int(time.time())
 PARSER = ArgumentParser()
@@ -201,6 +121,26 @@ except:
 
 printf("%s %s driver %s loaded\n",
        datetime.datetime.fromtimestamp(time.time()), ME[0], config['db_driver'])
+try:
+  dbe = importlib.import_module("drivererrors." + config['db_driver'])
+except:
+    printf("Failed to load driver error routines\n")
+    printf("Looked in %s\n", sys.path)
+    raise
+
+printf("%s %s driver drivererrors for %s loaded\n",
+       datetime.datetime.fromtimestamp(time.time()), ME[0], config['db_driver'])
+try:
+  dbc= importlib.import_module("dbconnections." + config['db_type'])
+except:
+    printf("Failed to load dbconnections routines for %s\n", config['db_type'])
+    printf("Looked in %s\n", sys.path)
+    raise
+
+printf("%s %s dbconnections for %s loaded\n",
+       datetime.datetime.fromtimestamp(time.time()), ME[0], config['db_type'])
+print(dbc)
+print(dbe)
 
 CHECKFILES = [[__file__, os.stat(__file__).st_mtime]]
 CHECKSCHANGED = [0]
@@ -243,25 +183,25 @@ while True:
             CONNECTCOUNTER += 1
             output(config['hostname'], ME[0]+"[connect,status]", 0)
             CURS = conn.cursor()
-            connect_info = connection_info ( config['db_type'] )
+            connect_info = dbc.connection_info(conn)
             printf('%s connected db_url %s type %s db_role %s version %s\n'\
                    '%s user %s %s sid,serial %d,%d instance %s as %s\n',
                    datetime.datetime.fromtimestamp(time.time()), \
-                   config['db_url'], connect_info['itype'], connect_info['dbrol'], \
+                   config['db_url'], connect_info['instance_type'], connect_info['db_role'], \
                    connect_info['dbversion'], \
                    datetime.datetime.fromtimestamp(time.time()), \
                    config['username'], connect_info['uname'], connect_info['sid'], \
                    connect_info['serial'], \
                    connect_info['iname'], \
                    config['role'])
-            if  connect_info['dbrol'] in ["PHYSICAL STANDBY", "MASTER"]:
+            if  connect_info['db_role'] in ["PHYSICAL STANDBY", "MASTER"]:
                 CHECKSFILE = os.path.join(config['checksfile_prefix'], \
                                            config['db_type'], "standby" +
                                            "." + connect_info['dbversion'] +".cfg")
             else:
                 CHECKSFILE = os.path.join(config['checksfile_prefix'], \
                                           config['db_type']  ,
-                                          connect_info['dbrol'] + "." + \
+                                          connect_info['db_role'] + "." + \
                                           connect_info['dbversion']+".cfg")
 
             printf('%s using sql_timeout %d\n',
@@ -319,7 +259,13 @@ while True:
                                 NEEDTOLOAD = "yes"
 
                 if NEEDTOLOAD == "yes":
-                    output(config['hostname'], ME[0] + "[version]", VERSION) # try once in a while
+                    output(config['hostname'], ME[0] + "[version]", VERSION)
+                    output(config['hostname'], ME[0] + "[config,db_type]", config['db_type'])
+                    output(config['hostname'], ME[0] + "[config,db_driver]", config['db_driver'])
+                    output(config['hostname'], ME[0] + "[config,instance_type]", config['instance_type'])
+                    output(config['hostname'], ME[0] + "[conn,db_role]", connect_info['db_role'])
+                    output(config['hostname'], ME[0] + "[conn,instance_type]", connect_info['instance_type'])
+                    output(config['hostname'], ME[0] + "[conn,dbversion]", connect_info['dbversion'])
                     OBJECTS_LIST = []
                     SECTIONS_LIST = []
                     FILES_LIST = []
@@ -478,7 +424,7 @@ while True:
                                                section + "," +
                                                key + ",fetch]", fetchela)
                                     except db.DatabaseError as dberr:
-                                        ecode, emsg = errorcode(config['db_driver'], dberr)
+                                        ecode, emsg = dbe.db_errorcode(config['db_driver'], dberr)
 
                                         if os.path.exists(config['out_file']):
                                             OUTF = open(config['out_file'], "a")
@@ -495,7 +441,7 @@ while True:
                                         printf('%s key=%s.%s ZBXDB-%s: Db execution error: %s\n', \
                                             datetime.datetime.fromtimestamp(time.time()), \
                                             section, key, ecode, emsg.strip())
-                                        if error_needs_new_session(config['db_driver'], ecode):
+                                        if dbe.db_error_needs_new_session(config['db_driver'], ecode):
                                             raise
                                     conn.rollback()
                             # end of a section ## time to run the checks again from this section
@@ -561,9 +507,9 @@ while True:
                 CONMINS = CONMINS + 1 # not really mins since the checks could
                 #                       have taken longer than 1 minute to complete
     except db.DatabaseError as dberr:
-        ecode, emsg = errorcode(config['db_driver'], dberr)
+        ecode, emsg = dbe.db_errorcode(config['db_driver'], dberr)
         ELAPSED = timer() - START
-        if not error_needs_new_session(config['db_driver'], ecode):
+        if not dbe.db_error_needs_new_session(config['db_driver'], ecode):
             # from a killed session, crashed instance or similar
             CONNECTERROR += 1
             output(config['hostname'], ME[0] + "[connect,status]", ecode)
