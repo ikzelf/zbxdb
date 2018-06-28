@@ -1,4 +1,8 @@
 __pycache__/
+log/
 *.pyc
 *.pyo
+.python-version
 etc/zbxdb.smartour.cfg
+etc/zbxdb.adb00_prod01.cfg
+etc/zbxdb.adb01_prod01.cfg
