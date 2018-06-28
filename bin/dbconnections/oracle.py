@@ -36,3 +36,15 @@ def connection_info(con):
         conn_info['db_role'] = "asm"
     C.close()
     return conn_info
+
+def connect_string(config):
+    if config['role'].upper() == "SYSASM":
+        config['omode'] = db.SYSASM
+    if config['role'].upper() == "SYSDBA":
+        config['omode'] = db.SYSDBA
+
+    return config['username'] + "/" + config['password'] + "@" + \
+                   config['db_url'] + " as " + config['role'].upper()
+
+def connect(db, c):
+    return db.connect(connect_string(c))

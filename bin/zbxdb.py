@@ -28,7 +28,7 @@ from argparse import ArgumentParser
 from timeit import default_timer as timer
 import platform
 from pdb import set_trace
-VERSION = "0.07"
+VERSION = "0.08"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -48,6 +48,7 @@ class MyConfigParser(configparser.RawConfigParser):
 def get_config(filename):
     """read the specified configuration file"""
     config = {'db_url': "", 'db_type': "", 'db_driver': "", 'instance_type': "rdbms",
+              'server': "", 'db_name': "", 'instance_name': "", 'server_port': "",
               'username': "scott", 'password': "tiger", 'role': "normal", 'omode': 0,
               'out_dir': "", 'out_file': "", 'hostname': "", 'checkfile_prefix': "",
               'site_checks': "", 'to_zabbic_method': "", 'to_zabbix_args': "",
@@ -75,28 +76,28 @@ def get_config(filename):
     config['to_zabbix_method'] = CONFIG.get(ME[0], "to_zabbix_method")
     config['to_zabbix_args'] = os.path.expandvars(CONFIG.get(ME[0], "to_zabbix_args")) + \
                                                               " " + config['out_file']
-    INIF.close()
-    config['omode'] = 0
-    if config['db_type'] == "oracle":
-        if config['role'].upper() == "SYSASM":
-            config['omode'] = db.SYSASM
-        if config['role'].upper() == "SYSDBA":
-            config['omode'] = db.SYSDBA
-
-    if config['db_type'] == "oracle":
-        config['CS'] = config['username'] + "/" + config['password'] + "@" + \
-                       config['db_url'] + " as " + config['role'].upper()
-    elif config['db_type'] == "postgres":
-        config['CS'] = "postgresql://" + config['username'] + ":" + config['password'] + "@" + \
-                       config['db_url']
-    else:
-        printf('%s DB_TYPE %s not -yet- implemented\n',
-               datetime.datetime.fromtimestamp(time.time()),
-               config['db_type'])
     try:
         config['sqltimeout'] = float(CONFIG.get(ME[0], "sql_timeout"))
     except configparser.NoOptionError:
         config['sqltimeout'] = 60.0
+    try:
+        config['server'] = CONFIG.get(ME[0], "server")
+    except:
+        pass
+    try:
+        config['server_port'] = CONFIG.get(ME[0], "server_port")
+    except:
+        pass
+    try:
+        config['db_name'] = CONFIG.get(ME[0], "db_name")
+    except:
+        pass
+    try:
+        config['instance_name'] = CONFIG.get(ME[0], "instance_name")
+    except:
+        pass
+
+    INIF.close()
     return config
 
 ME = os.path.splitext(os.path.basename(__file__))
@@ -104,6 +105,8 @@ STARTTIME = int(time.time())
 PARSER = ArgumentParser()
 PARSER.add_argument("-c", "--cfile", dest="configfile", default=ME[0]+".cfg",
                     help="Configuration file", metavar="FILE")
+PARSER.add_argument("-v", "--verbosity", action="count",
+                    help="increase output verbosity")
 ARGS = PARSER.parse_args()
 
 config = get_config(ARGS.configfile)
@@ -145,6 +148,9 @@ printf("%s %s dbconnections for %s loaded\n",
        datetime.datetime.fromtimestamp(time.time()), ME[0], config['db_type'])
 print(dbc)
 print(dbe)
+if ARGS.verbosity:
+    printf("%s %s connect string: %s\n",
+       datetime.datetime.fromtimestamp(time.time()), ME[0], dbc.connect_string(config))
 
 CHECKFILES = [[__file__, os.stat(__file__).st_mtime]]
 CHECKSCHANGED = [0]
@@ -183,7 +189,11 @@ while True:
             OUTF = open(config['out_file'], "w")
 
         START = timer()
-        with db.connect(config['CS']) as conn:
+        if ARGS.verbosity:
+            printf('%s connecting to %s\n',
+                   datetime.datetime.fromtimestamp(time.time()),
+                   dbc.connect_string(config))
+        with dbc.connect(db, config) as conn:
             CONNECTCOUNTER += 1
             output(config['hostname'], ME[0]+"[connect,status]", 0)
             CURS = conn.cursor()
@@ -373,7 +383,7 @@ while True:
                                     try:
                                         QUERYCOUNTER += 1
                                         sqltimeout = threading.Timer(config['sqltimeout'], \
-                                                                     conn.cancel)
+                                                                     conn.commit)
                                         sqltimeout.start()
                                         START = timer()
                                         CURS.execute(sql)
