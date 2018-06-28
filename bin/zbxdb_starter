@@ -1,61 +1,61 @@
 #!/usr/bin/env bash
 ME=${0##*/}
 
-if [ -z "$ZBX_HOME" ]
+if [ -z "$ZBXDB_HOME" ]
 then
   . $HOME/.bash_profile
 fi
 
-if [ -z "$ZBX_HOME" ]
+if [ -z "$ZBXDB_HOME" ]
 then
-  ZBX_HOME=$1
+  ZBXDB_HOME=$1
 fi
 
-if [ -z "$ZBX_HOME" ]
+if [ -z "$ZBXDB_HOME" ]
 then
-  echo "$ME specify ZBX_HOME in \$HOME/.bash_profile or as first argument of $ME"
+  echo "$ME specify ZBXDB_HOME in \$HOME/.bash_profile or as first argument of $ME"
   exit 1
 fi >&2
 
-if [ ! -d $ZBX_HOME ]
+if [ ! -d $ZBXDB_HOME ]
 then
-  echo "$ME directory $ZBX_HOME does not exist"
+  echo "$ME directory $ZBXDB_HOME does not exist"
   exit 1
 fi >&2
-if [ ! -r $ZBX_HOME ]
+if [ ! -r $ZBXDB_HOME ]
 then
-  echo "$ME directory $ZBX_HOME not readable"
+  echo "$ME directory $ZBXDB_HOME not readable"
   exit 1
 fi >&2
-if [ ! -x $ZBX_HOME ]
+if [ ! -x $ZBXDB_HOME ]
 then
-  echo "$ME directory $ZBX_HOME not accessible"
+  echo "$ME directory $ZBXDB_HOME not accessible"
 fi >&2
-if [ ! -d $ZBX_HOME/log ]
+if [ ! -d $ZBXDB_HOME/log ]
 then
-  echo "$ME directory $ZBX_HOME/log does not exist"
+  echo "$ME directory $ZBXDB_HOME/log does not exist"
   exit 1
 fi >&2
-if [ ! -d $ZBX_HOME/etc ]
+if [ ! -d $ZBXDB_HOME/etc ]
 then
-  echo "$ME directory $ZBX_HOME/etc does not exist"
+  echo "$ME directory $ZBXDB_HOME/etc does not exist"
   exit 1
 fi >&2
 
-ls -l $ZBX_HOME/etc/zbxdb.*.cfg >/dev/null 2>&1
+ls -l $ZBXDB_HOME/etc/zbxdb.*.cfg >/dev/null 2>&1
 if [ $? -ne 0 ]
 then
-  echo "$ME no config files in $ZBX_HOME/etc/"
+  echo "$ME no config files in $ZBXDB_HOME/etc/"
   exit 1
 fi >&2
 
-if [ ! -d $ZBX_HOME/etc/zbxdb_checks ]
+if [ ! -d $ZBXDB_HOME/etc/zbxdb_checks ]
 then
-  echo "$ME no zbxdb_checks directory in $ZBX_HOME/etc/"
+  echo "$ME no zbxdb_checks directory in $ZBXDB_HOME/etc/"
   exit 1
 fi >&2
 
-cd $ZBX_HOME
+cd $ZBXDB_HOME
 
 if [ -f log/$ME.lck ]
 then
