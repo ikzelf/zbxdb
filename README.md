@@ -1,10 +1,10 @@
 # zbxdb
 Zabbix Database monitoring plugin; started as a copy from zbxora-0.44
 
-Written in python, tested with python 2.6 and 2.7.
+Written in python, tested with python 3.6
 Using drivers available for python
 purpose is monitoring any database in an efficient way.
-Optionally calling zabbix_sender to upload data
+Using zabbix_sender to upload data from crontab
 
 Tested with 
 - Oracle 11,12 RAC and single instance databases
@@ -12,6 +12,7 @@ Tested with
 - Oracle asm instances
 - Oracle plugin databases
 - postgres 9
+- mssql 11 (2012)
 
 usage zbxdb.py -c configfile
 resulting in log to stdout and datafile in specified out_dir/{configfile}.zbx
@@ -28,6 +29,7 @@ template for database config file: (copy to zbxdb.{configname}.cfg)
 - `etc/zbxdb_config_template.cfg`
 
 default checks files:
+- `etc/checks/mssql/primary.11.cfg`
 - `etc/checks/oracle/asm.11.cfg`
 - `etc/checks/oracle/primary.11.cfg`
 - `etc/checks/oracle/primary.12.cfg`
@@ -164,6 +166,7 @@ You have to make sure that your driver is installed on your system.
 Use the code at your own risk. It is tested and seems to be functional. Use an account with the
 least required privileges, both on OS as on database leven.
 Don't use a dba type account for this.
+Don't use a root account for this.
 
 database user creation:
 ```
