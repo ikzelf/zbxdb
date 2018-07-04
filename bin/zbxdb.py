@@ -383,12 +383,12 @@ while True:
                                                                      conn.commit)
                                         sqltimeout.start()
                                         START = timer()
-                                        for sql in sqlparse.parse(sqls):
+                                        for statement in sqlparse.split(sqls):
                                             if ARGS.verbosity and ARGS.verbosity > 1:
                                                 printf("%s %s section: %s key: %s sql: %s\n",
                                                    datetime.datetime.fromtimestamp(time.time()), ME[0],
-                                                       section, key, sql)
-                                            CURS.execute(sql)
+                                                       section, key, statement)
+                                            CURS.execute(statement)
                                         startf = timer()
                                         # output for the last query must include the
                                         # output for the preparing queries is ignored
