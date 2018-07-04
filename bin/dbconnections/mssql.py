@@ -18,7 +18,7 @@ cast(serverproperty('ProductVersion') as varchar)) - 1)""")
     # C.execute("select pg_backend_pid()")
     # DATA = C.fetchone()
     # conn_info['sid'] = DATA[0]
-    C.execute("select db_name() dbname, ORIGINAL_LOGIN()")
+    C.execute("SELECT name, ORIGINAL_LOGIN() from Sys.Servers")
     DATA = C.fetchone()
     conn_info['iname'] = DATA[0]
     conn_info['uname'] = DATA[1]
