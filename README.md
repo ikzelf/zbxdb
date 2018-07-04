@@ -165,7 +165,9 @@ You have to make sure that your driver is installed on your system.
 # Warning:
 Use the code at your own risk. It is tested and seems to be functional. Use an account with the
 least required privileges, both on OS as on database leven.
+
 Don't use a dba type account for this.
+
 Don't use a root account for this.
 
 database user creation:
