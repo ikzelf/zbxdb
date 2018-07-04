@@ -29,7 +29,7 @@ from argparse import ArgumentParser
 from timeit import default_timer as timer
 import platform
 from pdb import set_trace
-VERSION = "0.08"
+VERSION = "0.10"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -52,7 +52,7 @@ def get_config(filename):
               'server': "", 'db_name': "", 'instance_name': "", 'server_port': "",
               'username': "scott", 'password': "tiger", 'role': "normal", 'omode': 0,
               'out_dir': "", 'out_file': "", 'hostname': "", 'checkfile_prefix': "",
-              'site_checks': "", 'to_zabbic_method': "", 'to_zabbix_args': "",
+              'site_checks': "",
               'sqltimeout': 0.0}
     CONFIG = MyConfigParser()
     if not os.path.exists(filename):
@@ -74,9 +74,6 @@ def get_config(filename):
     config['hostname'] = CONFIG.get(ME[0], "hostname")
     config['checksfile_prefix'] = CONFIG.get(ME[0], "checks_dir")
     config['site_checks'] = CONFIG.get(ME[0], "site_checks")
-    config['to_zabbix_method'] = CONFIG.get(ME[0], "to_zabbix_method")
-    config['to_zabbix_args'] = os.path.expandvars(CONFIG.get(ME[0], "to_zabbix_args")) + \
-                                                              " " + config['out_file']
     try:
         config['sqltimeout'] = float(CONFIG.get(ME[0], "sql_timeout"))
     except configparser.NoOptionError:
@@ -163,9 +160,6 @@ QUERYERROR = 0
 if config['site_checks'] != "NONE":
     printf("%s site_checks: %s\n", \
         datetime.datetime.fromtimestamp(time.time()), config['site_checks'])
-printf("%s to_zabbix_method: %s %s\n", \
-    datetime.datetime.fromtimestamp(time.time()), config['to_zabbix_method'], \
-       config['to_zabbix_args'])
 printf("%s out_file:%s\n", \
     datetime.datetime.fromtimestamp(time.time()), config['out_file'])
 SLEEPC = 0
@@ -345,14 +339,14 @@ while True:
                             E = {"{#SECTION}": section}
                             SECTIONS_LIST.append(E)
                             x = dict(CHECKS.items(section))
-                            for key, sql  in sorted(x.items()):
-                                if sql and key != "minutes":
+                            for key, sqls  in sorted(x.items()):
+                                if sqls and key != "minutes":
                                     d = collections.OrderedDict()
                                     d = {"{#SECTION}": section, "{#KEY}": key}
                                     OBJECTS_LIST.append(d)
                                     printf("%s\t\t%s: %s\n", \
                                         datetime.datetime.fromtimestamp(time.time()), \
-                                        key, sql[0 : 60].replace('\n', ' ').replace('\r', ' '))
+                                        key, sqls[0 : 60].replace('\n', ' ').replace('\r', ' '))
                     # checks are loaded now.
                     SECTIONS_JSON = '{\"data\":'+json.dumps(SECTIONS_LIST)+'}'
                     # printf ("DEBUG lld key: %s json: %s\n", ME[0]+".lld", ROWS_JSON)
@@ -390,6 +384,10 @@ while True:
                                         sqltimeout.start()
                                         START = timer()
                                         for sql in sqlparse.parse(sqls):
+                                            if ARGS.verbosity and ARGS.verbosity > 1:
+                                                printf("%s %s section: %s key: %s sql: %s\n",
+                                                   datetime.datetime.fromtimestamp(time.time()), ME[0],
+                                                       section, key, sql)
                                             CURS.execute(sql)
                                         startf = timer()
                                         # output for the last query must include the
@@ -486,32 +484,6 @@ while True:
                            resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
                            resource.getrusage(resource.RUSAGE_SELF).ru_utime,
                            resource.getrusage(resource.RUSAGE_SELF).ru_stime)
-                # now pass data to zabbix, if possible
-                if config['to_zabbix_method'] == "zabbix_sender":
-                    STOUT = open(config['out_file'] + ".log", "w")
-                    RESULT = subprocess.call(config['to_zabbix_args'].split(), \
-                        shell=False, stdout=STOUT, stderr=STOUT)
-                    if RESULT not in(0, 2):
-                        printf("%s zabbix_sender failed: %d\n", \
-                            datetime.datetime.fromtimestamp(time.time()), RESULT)
-                    else:
-                        OUTF.close()
-                        # create a datafile / day
-                        if datetime.datetime.now().strftime("%H:%M") < "00:10":
-                            TOMORROW = datetime.datetime.now() + datetime.timedelta(days=1)
-                            Z = open(config['out_file'] + "." + TOMORROW.strftime("%a"), 'w')
-                            Z.close()
-
-                        with open(config['out_file'] + "." + \
-                                  datetime.datetime.now().strftime("%a"), \
-                                  'a') as outfile:
-                            with open(config['out_file'], "r") as infile:
-                                outfile.write(infile.read())
-                        OUTF = open(config['out_file'], "w")
-
-                    STOUT.close()
-
-                # OUTF.close()
                 if CRASH > 0:
                     printf("%s crashing due to error %d\n", \
                         datetime.datetime.fromtimestamp(time.time()), \
