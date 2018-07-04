@@ -24,6 +24,7 @@ import gc
 import subprocess
 import threading
 import importlib
+import sqlparse
 from argparse import ArgumentParser
 from timeit import default_timer as timer
 import platform
@@ -376,19 +377,23 @@ while True:
                             ## time to run the checks again from this section
                             x = dict(CHECKS.items(section))
                             CURS = conn.cursor()
-                            for key, sql  in sorted(x.items()):
-                                if sql and key != "minutes":
-                                    # printf ("%s DEBUG Running %s.%s\n", \
-                                    # datetime.datetime.fromtimestamp(time.time()), section, key)
+                            for key, sqls  in sorted(x.items()):
+                                if sqls and key != "minutes":
+                                    if ARGS.verbosity:
+                                        printf("%s %s section: %s key: %s\n",
+                                           datetime.datetime.fromtimestamp(time.time()), ME[0],
+                                               section, key)
                                     try:
                                         QUERYCOUNTER += 1
                                         sqltimeout = threading.Timer(config['sqltimeout'], \
                                                                      conn.commit)
                                         sqltimeout.start()
                                         START = timer()
-                                        CURS.execute(sql)
+                                        for sql in sqlparse.parse(sqls):
+                                            CURS.execute(sql)
                                         startf = timer()
-                                        # output for the query must include the
+                                        # output for the last query must include the
+                                        # output for the preparing queries is ignored
                                         #        complete key and value
                                         rows = CURS.fetchall()
                                         if os.path.exists(config['out_file']):
