@@ -14,6 +14,19 @@ Tested with
 - postgres 9
 - mssql 11 (2012)
 
+Adding more db support
+----------------------
+Very simple: give the dbtype a name and select a driver name for it. Ad the {dbtype}.py to the
+dbconnections/ module that should handle the database connection. Add the {driver}.py to the
+drivererrors/ module  that should handle exceptions and give a uniform format to zbxdb.py.
+Add the {dbtype}/ directory to the etc/zbxdb_checks/ directory and write the sql tests files for it.
+Currently Oracle has the most complete set. The idea is that the script detects which role the database
+has (primary/slave/standby) and loads the {role}.{mainversion}.cfg file where the sqls are written.
+
+The sql's should return key/value pairs. In the template everything is written from an Oracle starters
+point and similar queries are defined for mssql and postgres, both using the same template, item
+prototypes and triggers.
+
 usage zbxdb.py -c configfile
 resulting in log to stdout and datafile in specified out_dir/{configfile}.zbx
 
