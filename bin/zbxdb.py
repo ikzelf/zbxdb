@@ -29,7 +29,7 @@ from argparse import ArgumentParser
 from timeit import default_timer as timer
 import platform
 from pdb import set_trace
-VERSION = "0.10"
+VERSION = "0.11"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -515,9 +515,9 @@ while True:
                 # don't sleep longer than 5 mins after connect failures
                 SLEEPER += 10
             SLEEPC = 0
-        printf('%s: (%d.%d)connection error: %s for %s@%s\n', \
+        printf('%s: (%d.%d)connection error: [%s] %s for %s@%s\n', \
             datetime.datetime.fromtimestamp(time.time()), \
-            SLEEPC, SLEEPER, emsg.strip().replace('\n', ' ').replace('\r', ' '), \
+            SLEEPC, SLEEPER, ecode, emsg.strip().replace('\n', ' ').replace('\r', ' '), \
             config['username'], config['db_url'])
         time.sleep(SLEEPER)
     except (KeyboardInterrupt, SystemExit):
