@@ -173,6 +173,7 @@ application. Tested are:
 - Oracle with cx_Oracle
 - postgres with psycopg2
 - mssql with pytds
+
 Others are in the pipeline, like:
 - cockroachDB with psycopg2
 - mysql with mysql.connector
