@@ -172,9 +172,10 @@ This makes it a bit hard to make the code generic because exactly the exception 
 application. Tested are:
 - Oracle with cx_Oracle
 - postgres with psycopg2
+- mssql with pytds
 Others are in the pipeline, like:
+- cockroachDB with psycopg2
 - mysql with mysql.connector
-- mssql with pymssql
 - db2 with ibm_db_dbi
 
 Just try your database and see what happens.
@@ -184,9 +185,9 @@ You have to make sure that your driver is installed on your system.
 Use the code at your own risk. It is tested and seems to be functional. Use an account with the
 least required privileges, both on OS as on database leven.
 
-**Don't use a dba type account for this.**
+**Don't use a dba type account for this. Read only access is good enough**
 
-**Don't use a root account for this.**
+**Don't use a root account for this. Any OS user will do, if it can use zabbix-sender**
 Using high privileged accounts is not needed.
 
 database user creation:
