@@ -48,12 +48,32 @@ default checks files:
 - `etc/checks/oracle/primary.12.cfg`
 - `etc/checks/oracle/standby.11.cfg`
 - `etc/checks/postgres/primary.9.cfg`
+- `etc/checks/postgres/slave.9.cfg`
 
 site checks files - examples:
 - `etc/checks/oracle/ebs.cfg`
 - `etc/checks/oracle/sap.cfg`
 
 
+mssql config file: zbxdb.mymssqldb.cfg
+--------------------------------------
+```
+[zbxdb]
+db_url: //localhost:1466/master
+db_type: mssql
+db_driver: pytds
+username: cistats
+password: knowoneknows
+server: mysqlserverhost
+port:  1466
+instance_type: rdbms
+role: normal
+# for ASM instance role should be SYSDBA
+out_dir: $HOME/zbxdb_out
+hostname: testhost
+checks_dir: etc/zbxdb_checks
+site_checks: sap,ebs
+```
 oracle config file: zbxdb.odb.cfg
 --------------------------------------
 ```
@@ -63,16 +83,13 @@ db_type: oracle
 db_driver: cx_Oracle
 username: cistats
 password: knowoneknows
+instance_type: rdbms
 role: normal
 # for ASM instance role should be SYSDBA
 out_dir: $HOME/zbxdb_out
 hostname: testhost
 checks_dir: etc/zbxdb_checks
 site_checks: sap,ebs
-to_zabbix_method: NOzabbix_sender
-# if to_zabbix_method is zabbix_sender, every cycle a sender process is started
-to_zabbix_args: zabbix_sender -z 127.0.0.1 -T -i 
-# the output filename is added to to_zabbix_args
 ```
 
 postgres config file: zbxdb.pgdb.cfg
@@ -82,26 +99,14 @@ postgres config file: zbxdb.pgdb.cfg
 db_url: localhost:5432
 username: cistats
 password: knowoneknows
-# db_type: oracle
 db_type: postgres
-# db_type: mysql
-# db_type: mssql
-# db_type: db2
-# db_driver: cx_Oracle
 db_driver: psycopg2 
-# db_driver: mysql.connector
-# db_driver: pymssql
-# db_driver: ibm_db_dbi
+instance_type: rdbms
 role: normal
-# for ASM instance role should be SYSDBA
 out_dir: $HOME/zbxora_out
 hostname: testhost
 checks_dir: etc/zbxdb_checks
 site_checks: NONE
-to_zabbix_method: NOzabbix_sender
-# if to_zabbix_method is zabbix_sender, every cycle a sender process is started
-to_zabbix_args: zabbix_sender -z 127.0.0.1 -T -i 
-# the output filename is added to to_zabbix_args
 ```
 
 Assuming bin/ is in PATH:
@@ -167,9 +172,11 @@ This makes it a bit hard to make the code generic because exactly the exception 
 application. Tested are:
 - Oracle with cx_Oracle
 - postgres with psycopg2
+- mssql with pytds
+
 Others are in the pipeline, like:
+- cockroachDB with psycopg2
 - mysql with mysql.connector
-- mssql with pymssql
 - db2 with ibm_db_dbi
 
 Just try your database and see what happens.
@@ -179,9 +186,9 @@ You have to make sure that your driver is installed on your system.
 Use the code at your own risk. It is tested and seems to be functional. Use an account with the
 least required privileges, both on OS as on database leven.
 
-**Don't use a dba type account for this.**
+**Don't use a dba type account for this. Read only access is good enough**
 
-**Don't use a root account for this.**
+**Don't use a root account for this. Any OS user will do, if it can use zabbix-sender**
 Using high privileged accounts is not needed.
 
 database user creation:
