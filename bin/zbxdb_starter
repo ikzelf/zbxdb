@@ -81,6 +81,7 @@ do
     if [ $procs -ne 0 ]
     then
       id=$(basename $mon)
+      tail -10 log/$id.log >>log/$ME.log
       echo "`date ` Starting $mon" >>log/$ME.log
       nohup zbxdb.py -c $mon >log/$id.log 2>&1 &
     fi
