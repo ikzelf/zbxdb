@@ -3,6 +3,7 @@ log/
 *.pyc
 *.pyo
 .python-version
-etc/zbxdb.smartour.cfg
 etc/zbxdb.adb00_prod01.cfg
 etc/zbxdb.adb01_prod01.cfg
+etc/zbxdb.CLU-DC2-007_INSTANCE4.cfg
+etc/zbxdb.SRV-OTA-027_PTVLO.cfg
