@@ -3,7 +3,7 @@ def connection_info(con):
     conn_info = {'dbversion': "", 'sid': 0, 'instance_type': "rdbms",
                  'serial': 0, 'db_role': "", 'uname': "",
                  'iname': ""}
-    C = conn.cursor()
+    C = con.cursor()
     try:
         C.execute("""select substr(i.version,0,instr(i.version,'.')-1),
           s.sid, s.serial#, p.value instance_type, i.instance_name
@@ -29,7 +29,7 @@ def connection_info(con):
             conn_info['dbversion'] = "unk"
 
     if conn_info['instance_type'] == "RDBMS":
-        C.execute("""select database_role from v$database""")
+        C.execute("""select lower(database_role) from v$database""")
         DATA = C.fetchone()
         conn_info['db_role'] = DATA[0]
     else:
@@ -38,13 +38,13 @@ def connection_info(con):
     return conn_info
 
 def connect_string(config):
-    if config['role'].upper() == "SYSASM":
-        config['omode'] = db.SYSASM
-    if config['role'].upper() == "SYSDBA":
-        config['omode'] = db.SYSDBA
 
     return config['username'] + "/" + config['password'] + "@" + \
-                   config['db_url'] + " as " + config['role'].upper()
+                   config['db_url']
 
 def connect(db, c):
-    return db.connect(connect_string(c))
+    if c['role'].upper() == "SYSASM":
+        c['omode'] = db.SYSASM
+    if c['role'].upper() == "SYSDBA":
+        c['omode'] = db.SYSDBA
+    return db.connect(connect_string(c), mode=c['omode'])
