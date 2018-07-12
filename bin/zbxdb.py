@@ -500,10 +500,10 @@ while True:
     except db.DatabaseError as dberr:
         ecode, emsg = dbe.db_errorcode(config['db_driver'], dberr)
         ELAPSED = timer() - START
+        output(config['hostname'], ME[0] + "[connect,status]", ecode)
         if not dbe.db_error_needs_new_session(config['db_driver'], ecode):
             # from a killed session, crashed instance or similar
             CONNECTERROR += 1
-            output(config['hostname'], ME[0] + "[connect,status]", ecode)
         # output(config['hostname'], ME[0] + "[uptime]", int(time.time()) - STARTTIME))
         if PERROR != ecode:
             SLEEPC = 0

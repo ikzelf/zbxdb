@@ -1,6 +1,6 @@
 def db_errorcode(driver, excep):
     """pass exception code and message from various drivers in standard way"""
-    ERROR, = dberr.args
+    ERROR, = excep.args
     return ERROR.code, excep.args[0]
 
 def db_error_needs_new_session(driver, code):
