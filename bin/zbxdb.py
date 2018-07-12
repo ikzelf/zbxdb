@@ -29,7 +29,7 @@ from argparse import ArgumentParser
 from timeit import default_timer as timer
 import platform
 from pdb import set_trace
-VERSION = "0.13"
+VERSION = "0.14"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -460,10 +460,11 @@ while True:
                                             section, key, ecode, emsg.strip())
                                         if dbe.db_error_needs_new_session(config['db_driver'], ecode):
                                             raise
-                                    conn.rollback()
                             # end of a section ## time to run the checks again from this section
                             output(config['hostname'], ME[0] + "[query," + section + ",,ela]",
                                    timer() - SectionTimer)
+                # release locks that might have been taken
+                conn.rollback()
                 # dump metric for summed elapsed time of this run
                 output(config['hostname'], ME[0] + "[query,,,ela]",
                        timer() - RUNTIMER)
