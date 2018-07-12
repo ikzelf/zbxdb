@@ -156,12 +156,15 @@ files named etc/zbxdb.{your_config}.cfg, each given their own logfile. Notice th
 sequence. This is done to make sure not all concurrently running zbxdb sessions awake at
 the same moment. Now their awakenings is separated by a second. This makes that if running
 10 monitors, they are executing their checks one after an other.
+Schedule this in the crontab, every minute.
+Make sure that ZBXDB_HOME is defined in your .bash_profile and also add the location of zbxdb.py to
+your PATH. In my case: PATH=$HOME/zbxdb/bin:$PATH
 
 # zbxdb_sender:
-This convenient when monitoring lot's of databases from one client. In that case it is more
-efficient to collect all output files in zbxdb_out/ and upload them in one session to zabbix.
-It is possible to have zbxdb call zabbix_sender but this is not implemented in the most
-efficient way.
+this is used to really send the data to zabbix. Could be zabbix server, could be zabbix proxy, only
+depending on the location of your monitoring host. It collects the files from the out_dir and
+sends them in one session. Doing so makes the process pretty efficient, at the cost of a small delay.
+Schedule this in the crontab, every minute.
 
 TODO: make zbxdb.py open a pipe to zabbix_sender and use that all the time instead of opening
 a new session every minute.
