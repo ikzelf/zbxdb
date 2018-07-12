@@ -29,7 +29,7 @@ from argparse import ArgumentParser
 from timeit import default_timer as timer
 import platform
 from pdb import set_trace
-VERSION = "0.11"
+VERSION = "0.13"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -203,14 +203,14 @@ while True:
                    connect_info['serial'], \
                    connect_info['iname'], \
                    config['role'])
-            if  connect_info['db_role'] in ["PHYSICAL STANDBY", "MASTER"]:
+            if  connect_info['db_role'] in ["PHYSICAL STANDBY", "SLAVE"]:
                 CHECKSFILE = os.path.join(config['checksfile_prefix'], \
                                            config['db_type'], "standby" +
                                            "." + connect_info['dbversion'] +".cfg")
             else:
                 CHECKSFILE = os.path.join(config['checksfile_prefix'], \
                                           config['db_type']  ,
-                                          connect_info['db_role'] + "." + \
+                                          connect_info['db_role'].lower() + "." + \
                                           connect_info['dbversion']+".cfg")
 
             printf('%s using sql_timeout %d\n',

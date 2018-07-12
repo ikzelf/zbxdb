@@ -1,5 +1,5 @@
 # zbxdb
-Zabbix Database monitoring plugin; started as a copy from zbxora-0.44
+Zabbix Database monitoring plugin; started as a copy from zbxora-1.98
 
 Written in python, tested with python 3.6
 Using drivers available for python

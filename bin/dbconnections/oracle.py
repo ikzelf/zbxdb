@@ -29,7 +29,7 @@ def connection_info(con):
             conn_info['dbversion'] = "unk"
 
     if conn_info['instance_type'] == "RDBMS":
-        C.execute("""select lower(database_role) from v$database""")
+        C.execute("""select database_role from v$database""")
         DATA = C.fetchone()
         conn_info['db_role'] = DATA[0]
     else:
