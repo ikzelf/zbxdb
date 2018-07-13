@@ -5,6 +5,8 @@ Written in python, tested with python 3.6
 Using drivers available for python
 purpose is monitoring any database in an efficient way.
 Using zabbix_sender to upload data from crontab
+By popular demand: password fields are encrypted to password_enc fields during startup when a password
+value is detected.
 
 Tested with 
 - Oracle 11,12 RAC and single instance databases
@@ -203,10 +205,6 @@ grant create session, select any dictionary, oem_monitor to cistats;
 In Oracle 12 - when using pluggable database:
 ```
 create user c##cistats identified by knowoneknows;
-alter user c##cistats set container_data all = container = current;
+alter user c##cistats set container_data all container = current;
 grant create session, select any dictionary, oem_monitor, dv_monitor to c##cistats;
 ```
-
-# extra warning:
-I have written this in python but not in a pythonic style.
-A little cleanup to convert this to clean python code - and preserving efficiency - is welcome.
