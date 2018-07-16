@@ -21,11 +21,15 @@ def connection_info(con):
         conn_info['iname'] = DATA[4]
         conn_info['uname'] = DATA[5]
 
-    except db.DatabaseError as dberr:
-        ecode, emsg = dbe.db_errorcode(config['db_driver'], dberr)
-        if ecode == 904:
+    except con.DatabaseError as dberr:
+        ERROR, = dberr.args
+        if ERROR.code == 904:
             conn_info['dbversion'] = "pre9"
+        elif ERROR.code == 942:
+            print("Missing required privileges (grant create session, select any dictionary, oem_monitor)")
+            raise
         else:
+            print (ERROR.code)
             conn_info['dbversion'] = "unk"
 
     if conn_info['instance_type'] == "RDBMS":

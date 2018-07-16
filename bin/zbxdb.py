@@ -89,7 +89,7 @@ def get_config(filename):
                                       str(os.path.splitext(os.path.basename(filename))[0]) +
                                       ".zbx")
     config['hostname'] = CONFIG.get(ME[0], "hostname")
-    config['checksfile_prefix'] = CONFIG.get(ME[0], "checks_dir")
+    config['checksfile_prefix'] = os.path.expandvars(CONFIG.get(ME[0], "checks_dir"))
     config['site_checks'] = CONFIG.get(ME[0], "site_checks")
     try:
         config['sqltimeout'] = float(CONFIG.get(ME[0], "sql_timeout"))
@@ -131,9 +131,19 @@ PARSER.add_argument("-c", "--cfile", dest="configfile", default=ME[0]+".cfg",
                     help="Configuration file", metavar="FILE")
 PARSER.add_argument("-v", "--verbosity", action="count",
                     help="increase output verbosity")
+PARSER.add_argument("-p", "--parameter", action="store",
+                    help="show parameter from configfile")
 ARGS = PARSER.parse_args()
 
 config = get_config(ARGS.configfile)
+
+if ARGS.parameter:
+    if ARGS.parameter == 'password':
+        print ('parameter {}: {}\n'.format(ARGS.parameter, decrypted(config[ARGS.parameter+'_enc'])))
+    else:
+        print ('parameter {}: {}\n'.format(ARGS.parameter, config[ARGS.parameter]))
+    sys.exit(0)
+
 printf("%s start python-%s %s-%s pid=%s Connecting for hostname %s...\n", \
        datetime.datetime.fromtimestamp(STARTTIME), \
        platform.python_version(), ME[0], VERSION, os.getpid(), config['hostname']
@@ -188,7 +198,7 @@ CONNECTCOUNTER = 0
 CONNECTERROR = 0
 QUERYCOUNTER = 0
 QUERYERROR = 0
-if config['site_checks'] != "NONE":
+if config['site_checks'] and config['site_checks'] != "NONE":
     printf("%s site_checks: %s\n", \
         datetime.datetime.fromtimestamp(time.time()), config['site_checks'])
 printf("%s out_file:%s\n", \
@@ -202,7 +212,7 @@ while True:
         CHECKSFILE = Z[0]
         CHECKSCHANGED = Z[1]
         if CHECKSCHANGED != os.stat(CHECKSFILE).st_mtime:
-            printf("%s %s changed, restarting ...\n",
+            printf("%s %s changed, restarting ..\n",
                    datetime.datetime.fromtimestamp(time.time()), CHECKSFILE)
             os.execv(__file__, sys.argv)
 
@@ -270,6 +280,9 @@ while True:
             CONMINS = 0
             OPENTIME = int(time.time())
             while True:
+                if ARGS.verbosity:
+                    printf("%s %s while True\n",
+                       datetime.datetime.fromtimestamp(time.time()), ME[0])
                 NOWRUN = int(time.time()) # keep this to compare for when to dump stats
                 RUNTIMER = timer() # keep this to compare for when to dump stats
                 if os.path.exists(config['out_file']):
@@ -320,7 +333,6 @@ while True:
 
                     FILES_JSON = '{\"data\":'+json.dumps(FILES_LIST)+'}'
                     output(config['hostname'], ME[0]+".files.lld", FILES_JSON)
-                    CRASH = 0
                     for i in range(1, len(CHECKFILES)):
                         z = CHECKFILES[i]
                         CHECKSFILE = z[0]
@@ -343,15 +355,11 @@ while True:
                                 printf("%s\tfile %s has parsing errors %s %s ->(13)\n",
                                        datetime.datetime.fromtimestamp(time.time()),
                                        CHECKSFILE)
-                                # CRASH=13
-                                # raise
                         except IOError as io_error:
                             output(config['hostname'], ME[0] + "[checks," + str(i) + ",status]", 11)
                             printf("%s\tfile %s IOError %s %s ->(11)\n",
                                    datetime.datetime.fromtimestamp(time.time()), CHECKSFILE,
                                    io_error.errno, io_error.strerror)
-                            CRASH = 11
-                            # raise
 
                         z[1] = os.stat(CHECKSFILE).st_mtime
 
@@ -474,6 +482,7 @@ while True:
                                                key + ",fetch]", fetchela)
                                     except db.DatabaseError as dberr:
                                         ecode, emsg = dbe.db_errorcode(config['db_driver'], dberr)
+                                        sqltimeout.cancel()
 
                                         if os.path.exists(config['out_file']):
                                             OUTF = open(config['out_file'], "a")
@@ -496,7 +505,14 @@ while True:
                             output(config['hostname'], ME[0] + "[query," + section + ",,ela]",
                                    timer() - SectionTimer)
                 # release locks that might have been taken
+                if ARGS.verbosity:
+                    printf("%s %s rollback\n",
+                       datetime.datetime.fromtimestamp(time.time()), ME[0])
+
                 conn.rollback()
+                if ARGS.verbosity:
+                    printf("%s %s rolledback\n",
+                       datetime.datetime.fromtimestamp(time.time()), ME[0])
                 # dump metric for summed elapsed time of this run
                 output(config['hostname'], ME[0] + "[query,,,ela]",
                        timer() - RUNTIMER)
@@ -507,7 +523,7 @@ while True:
                 output(config['hostname'], ME[0] + "[mem,maxrss]",
                        resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
                 # passed all sections
-                if ((NOWRUN - STARTTIME) % 3600) == 0:
+                if ((NOWRUN - STARTTIME) % 600) == 0:
                     gc.collect()
                     # dump stats
                     printf("%s connect %d times, %d fail; started %d queries, " +
@@ -517,11 +533,6 @@ while True:
                            resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
                            resource.getrusage(resource.RUSAGE_SELF).ru_utime,
                            resource.getrusage(resource.RUSAGE_SELF).ru_stime)
-                if CRASH > 0:
-                    printf("%s crashing due to error %d\n", \
-                        datetime.datetime.fromtimestamp(time.time()), \
-                        CRASH)
-                    sys.exit(CRASH)
                 # try to keep activities on the same starting second:
                 SLEEPTIME = 60 - ((int(time.time()) - STARTTIME) % 60)
                 # printf ("%s DEBUG Sleeping for %d seconds\n", \
@@ -537,7 +548,6 @@ while True:
         if not dbe.db_error_needs_new_session(config['db_driver'], ecode):
             # from a killed session, crashed instance or similar
             CONNECTERROR += 1
-        # output(config['hostname'], ME[0] + "[uptime]", int(time.time()) - STARTTIME))
         if PERROR != ecode:
             SLEEPC = 0
             SLEEPER = 1
@@ -553,6 +563,13 @@ while True:
             SLEEPC, SLEEPER, ecode, emsg.strip().replace('\n', ' ').replace('\r', ' '), \
             config['username'], config['db_url'])
         time.sleep(SLEEPER)
+        if ARGS.verbosity:
+            printf('%s: close connection\n', \
+                datetime.datetime.fromtimestamp(time.time()))
+        conn.close()
+        if ARGS.verbosity:
+            printf('%s: closed connection\n', \
+                datetime.datetime.fromtimestamp(time.time()))
     except (KeyboardInterrupt, SystemExit):
         OUTF.close()
         raise
