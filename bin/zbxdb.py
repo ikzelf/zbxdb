@@ -30,7 +30,7 @@ from argparse import ArgumentParser
 from timeit import default_timer as timer
 import platform
 from pdb import set_trace
-VERSION = "0.14"
+VERSION = "0.15"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
