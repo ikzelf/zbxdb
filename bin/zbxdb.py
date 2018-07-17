@@ -563,13 +563,6 @@ while True:
             SLEEPC, SLEEPER, ecode, emsg.strip().replace('\n', ' ').replace('\r', ' '), \
             config['username'], config['db_url'])
         time.sleep(SLEEPER)
-        if ARGS.verbosity:
-            printf('%s: close connection\n', \
-                datetime.datetime.fromtimestamp(time.time()))
-        conn.close()
-        if ARGS.verbosity:
-            printf('%s: closed connection\n', \
-                datetime.datetime.fromtimestamp(time.time()))
     except (KeyboardInterrupt, SystemExit):
         OUTF.close()
         raise

@@ -37,7 +37,8 @@ def connection_info(con):
         DATA = C.fetchone()
         conn_info['db_role'] = DATA[0]
     else:
-        conn_info['db_role'] = "asm"
+        # probably ASM or ASMPROXY
+        conn_info['db_role'] = conn_info['instance_type']
     C.close()
     return conn_info
 
