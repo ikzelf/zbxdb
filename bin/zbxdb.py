@@ -22,15 +22,14 @@ import os
 import configparser
 import resource
 import gc
-import subprocess
 import threading
 import importlib
-import sqlparse
 from argparse import ArgumentParser
 from timeit import default_timer as timer
 import platform
-from pdb import set_trace
-VERSION = "0.15"
+import sqlparse
+# from pdb import set_trace
+VERSION = "0.20"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -44,15 +43,17 @@ def output(host, ikey, values):
     OUTF.flush()
 
 class MyConfigParser(configparser.RawConfigParser):
+    """strip comments"""
     def __init__(self):
-      configparser.RawConfigParser.__init__(self, inline_comment_prefixes=('#', ';'))
+        configparser.RawConfigParser.__init__(self, inline_comment_prefixes=('#', ';'))
 
 def encrypted(plain):
     """encrypt plaintext password"""
-    return base64.b64encode(bytes(plain,'utf-8'))
+    return base64.b64encode(bytes(plain, 'utf-8'))
 
 def decrypted(pw_enc):
-    return base64.b64decode(pw_enc).decode("utf-8", "ignore")  
+    """return decrypted password"""
+    return base64.b64decode(pw_enc).decode("utf-8", "ignore")
 
 def get_config(filename):
     """read the specified configuration file"""
@@ -60,7 +61,7 @@ def get_config(filename):
               'server': "", 'db_name': "", 'instance_name': "", 'server_port': "",
               'username': "scott", 'password': "tiger", 'role': "normal", 'omode': 0,
               'out_dir': "", 'out_file': "", 'hostname': "", 'checkfile_prefix': "",
-              'site_checks': "",'password_enc': "",
+              'site_checks': "", 'password_enc': "",
               'sqltimeout': 0.0}
     CONFIG = MyConfigParser()
     if not os.path.exists(filename):
@@ -97,28 +98,28 @@ def get_config(filename):
         config['sqltimeout'] = 60.0
     try:
         config['server'] = CONFIG.get(ME[0], "server")
-    except:
+    except configparser.NoOptionError:
         pass
     try:
         config['server_port'] = CONFIG.get(ME[0], "server_port")
-    except:
+    except configparser.NoOptionError:
         pass
     try:
         config['db_name'] = CONFIG.get(ME[0], "db_name")
-    except:
+    except configparser.NoOptionError:
         pass
     try:
         config['instance_name'] = CONFIG.get(ME[0], "instance_name")
-    except:
+    except configparser.NoOptionError:
         pass
 
     INIF.close()
-    
+
     if config['password']:
-        enc=encrypted(config['password'])
+        enc = encrypted(config['password'])
         INIF = open(filename, 'w')
-        CONFIG.set(ME[0],'password','')
-        CONFIG.set(ME[0],'password_enc',enc.decode())
+        CONFIG.set(ME[0], 'password', '')
+        CONFIG.set(ME[0], 'password_enc', enc.decode())
         CONFIG.write(INIF)
         INIF.close()
 
@@ -139,9 +140,10 @@ config = get_config(ARGS.configfile)
 
 if ARGS.parameter:
     if ARGS.parameter == 'password':
-        print ('parameter {}: {}\n'.format(ARGS.parameter, decrypted(config[ARGS.parameter+'_enc'])))
+        print ('parameter {}: {}\n'.format(ARGS.parameter,
+                                           decrypted(config[ARGS.parameter+'_enc'])))
     else:
-        print ('parameter {}: {}\n'.format(ARGS.parameter, config[ARGS.parameter]))
+        print('parameter {}: {}\n'.format(ARGS.parameter, config[ARGS.parameter]))
     sys.exit(0)
 
 printf("%s start python-%s %s-%s pid=%s Connecting for hostname %s...\n", \
@@ -189,9 +191,9 @@ print(dbc)
 print(dbe)
 if ARGS.verbosity:
     printf("%s %s connect string: %s\n",
-       datetime.datetime.fromtimestamp(time.time()), ME[0], dbc.connect_string(config))
+           datetime.datetime.fromtimestamp(time.time()), ME[0], dbc.connect_string(config))
 
-CHECKFILES = [[__file__, os.stat(__file__).st_mtime]]
+CHECKFILES = [{'name': __file__, 'lmod': os.stat(__file__).st_mtime}]
 CHECKSCHANGED = [0]
 
 CONNECTCOUNTER = 0
@@ -208,16 +210,13 @@ SLEEPER = 1
 PERROR = 0
 while True:
     try:
-        Z = CHECKFILES[0]
-        CHECKSFILE = Z[0]
-        CHECKSCHANGED = Z[1]
-        if CHECKSCHANGED != os.stat(CHECKSFILE).st_mtime:
+        if CHECKFILES[0]['lmod'] != os.stat(CHECKFILES[0]['name']).st_mtime:
             printf("%s %s changed, restarting ..\n",
-                   datetime.datetime.fromtimestamp(time.time()), CHECKSFILE)
+                   datetime.datetime.fromtimestamp(time.time()), CHECKFILES[0]['name'])
             os.execv(__file__, sys.argv)
 
         # reset list in case of a just new connection that reloads the config
-        CHECKFILES = [[__file__, os.stat(__file__).st_mtime]]
+        CHECKFILES = [{'name': __file__, 'lmod': os.stat(__file__).st_mtime}]
         config = get_config(ARGS.configfile)
         config['password'] = decrypted(config['password_enc'])
         if os.path.exists(config['out_file']):
@@ -248,10 +247,10 @@ while True:
             if  connect_info['db_role'] in ["PHYSICAL STANDBY", "SLAVE"]:
                 CHECKSFILE = os.path.join(config['checksfile_prefix'], \
                                            config['db_type'], "standby" +
-                                           "." + connect_info['dbversion'] +".cfg")
+                                          "." + connect_info['dbversion'] +".cfg")
             else:
                 CHECKSFILE = os.path.join(config['checksfile_prefix'], \
-                                          config['db_type']  ,
+                                          config['db_type'],
                                           connect_info['db_role'].lower() + "." + \
                                           connect_info['dbversion']+".cfg")
 
@@ -259,19 +258,19 @@ while True:
                    datetime.datetime.fromtimestamp(time.time()), \
                    config['sqltimeout'])
             FILES = [CHECKSFILE]
-            CHECKFILES.extend([[CHECKSFILE, 0]])
+            CHECKFILES.append({'name': CHECKSFILE, 'lmod': 0})
             if config['site_checks'] != "NONE":
                 for addition in config['site_checks'].split(","):
                     addfile = os.path.join(config['checksfile_prefix'], config['db_type'], \
                                            addition + ".cfg")
-                    CHECKFILES.extend([[addfile, 0]])
+                    CHECKFILES.append({'name': addfile, 'lmod': 0})
                     FILES.extend([addfile])
             printf('%s using checks from %s\n',
                    datetime.datetime.fromtimestamp(time.time()), FILES)
 
             for CHECKSFILE in CHECKFILES:
-                if not os.path.exists(CHECKSFILE[0]):
-                    raise ValueError("Configfile " + CHECKSFILE[0]+ " does not exist")
+                if not os.path.exists(CHECKSFILE['name']):
+                    raise ValueError("Configfile " + CHECKSFILE['name']+ " does not exist")
             ## all checkfiles exist
 
             SLEEPC = 0
@@ -282,7 +281,7 @@ while True:
             while True:
                 if ARGS.verbosity:
                     printf("%s %s while True\n",
-                       datetime.datetime.fromtimestamp(time.time()), ME[0])
+                           datetime.datetime.fromtimestamp(time.time()), ME[0])
                 NOWRUN = int(time.time()) # keep this to compare for when to dump stats
                 RUNTIMER = timer() # keep this to compare for when to dump stats
                 if os.path.exists(config['out_file']):
@@ -292,41 +291,43 @@ while True:
                 # loading checks from the various checkfiles:
                 NEEDTOLOAD = "no"
                 for i in range(len(CHECKFILES)): # at index 0 is the script itself
-                    z = CHECKFILES[i]
-                    CHECKSFILE = z[0]
-                    CHECKSCHANGED = z[1]
                     # if CHECKSFILE became inaccessible in run -> crash and no output :-(
                     # change the CHECKSCHANGED to catch that.
-                    if CHECKSCHANGED != os.stat(CHECKSFILE).st_mtime:
+                    if CHECKFILES[i]['lmod'] != os.stat(CHECKFILES[i]['name']).st_mtime:
                         if i == 0: # this is the script itself that changed
                             printf("%s %s changed, restarting ...\n",
-                                   datetime.datetime.fromtimestamp(time.time()), CHECKSFILE)
+                                   datetime.datetime.fromtimestamp(time.time()),
+                                   CHECKFILES[i]['name'])
                             os.execv(__file__, sys.argv)
                         else:
-                            if CHECKSCHANGED == 0:
+                            if CHECKFILES[i]['lmod'] == 0:
                                 printf("%s checks loading %s\n", \
-                                    datetime.datetime.fromtimestamp(time.time()), CHECKSFILE)
+                                    datetime.datetime.fromtimestamp(time.time()),
+                                       CHECKFILES[i]['name'])
                                 NEEDTOLOAD = "yes"
                             else:
                                 printf("%s checks changed, reloading %s\n", \
-                                    datetime.datetime.fromtimestamp(time.time()), CHECKSFILE)
+                                    datetime.datetime.fromtimestamp(time.time()),
+                                       CHECKFILES[i]['name'])
                                 NEEDTOLOAD = "yes"
 
                 if NEEDTOLOAD == "yes":
                     output(config['hostname'], ME[0] + "[version]", VERSION)
                     output(config['hostname'], ME[0] + "[config,db_type]", config['db_type'])
                     output(config['hostname'], ME[0] + "[config,db_driver]", config['db_driver'])
-                    output(config['hostname'], ME[0] + "[config,instance_type]", config['instance_type'])
-                    output(config['hostname'], ME[0] + "[conn,db_role]", connect_info['db_role'])
-                    output(config['hostname'], ME[0] + "[conn,instance_type]", connect_info['instance_type'])
-                    output(config['hostname'], ME[0] + "[conn,dbversion]", connect_info['dbversion'])
+                    output(config['hostname'], ME[0] + "[config,instance_type]",
+                           config['instance_type'])
+                    output(config['hostname'], ME[0] + "[conn,db_role]",
+                           connect_info['db_role'])
+                    output(config['hostname'], ME[0] + "[conn,instance_type]",
+                           connect_info['instance_type'])
+                    output(config['hostname'], ME[0] + "[conn,dbversion]",
+                           connect_info['dbversion'])
                     OBJECTS_LIST = []
                     SECTIONS_LIST = []
                     FILES_LIST = []
                     ALL_CHECKS = []
                     for i in range(len(CHECKFILES)):
-                        z = CHECKFILES[i]
-                        CHECKSFILE = z[0]
                         E = collections.OrderedDict()
                         E = {"{#CHECKS_FILE}": i}
                         FILES_LIST.append(E)
@@ -334,16 +335,15 @@ while True:
                     FILES_JSON = '{\"data\":'+json.dumps(FILES_LIST)+'}'
                     output(config['hostname'], ME[0]+".files.lld", FILES_JSON)
                     for i in range(1, len(CHECKFILES)):
-                        z = CHECKFILES[i]
-                        CHECKSFILE = z[0]
+                        # #0 is executable that is also checked for updates
                         CHECKS = configparser.RawConfigParser()
                         try:
-                            CHECKSF = open(CHECKSFILE, 'r')
+                            CHECKSF = open(CHECKFILES[i]['name'], 'r')
                             output(config['hostname'], ME[0] + "[checks," + str(i) + \
-                                   ",name]", CHECKSFILE)
+                                   ",name]", CHECKFILES[i]['name'])
                             output(config['hostname'], ME[0] + "[checks," + str(i) + \
                                    ",lmod]",
-                                   str(int(os.stat(CHECKSFILE).st_mtime)))
+                                   str(int(os.stat(CHECKFILES[i]['name']).st_mtime)))
                             try:
                                 CHECKS.read_file(CHECKSF)
                                 CHECKSF.close()
@@ -354,16 +354,15 @@ while True:
                                        ",status]", 13)
                                 printf("%s\tfile %s has parsing errors %s %s ->(13)\n",
                                        datetime.datetime.fromtimestamp(time.time()),
-                                       CHECKSFILE)
+                                       CHECKFILES[i]['name'])
                         except IOError as io_error:
                             output(config['hostname'], ME[0] + "[checks," + str(i) + ",status]", 11)
                             printf("%s\tfile %s IOError %s %s ->(11)\n",
-                                   datetime.datetime.fromtimestamp(time.time()), CHECKSFILE,
+                                   datetime.datetime.fromtimestamp(time.time()),
+                                   CHECKFILES[i]['name'],
                                    io_error.errno, io_error.strerror)
 
-                        z[1] = os.stat(CHECKSFILE).st_mtime
-
-                        CHECKFILES[i] = z
+                        CHECKFILES[i]['lmod'] = os.stat(CHECKFILES[i]['name']).st_mtime
                         ALL_CHECKS.append(CHECKS)
                         for section in sorted(CHECKS.sections()):
                             secMins = int(CHECKS.get(section, "minutes"))
@@ -394,6 +393,19 @@ while True:
                     ROWS_JSON = '{\"data\":'+json.dumps(OBJECTS_LIST)+'}'
                     # printf ("DEBUG lld key: %s json: %s\n", ME[0]+".lld", ROWS_JSON)
                     output(config['hostname'], ME[0] + ".query.lld", ROWS_JSON)
+                    # sqls can contain multiple statements per key. sqlparse to split them
+                    # now. Otherwise use a lot of extra cycles when splitting at runtime
+                    # all_sql { {section, key}: statements }
+                    all_sql = {}
+                    for CHECKS in ALL_CHECKS:
+                        for section in sorted(CHECKS.sections()):
+                            x = dict(CHECKS.items(section))
+                            for key, sqls in sorted(x.items()):
+                                if sqls and key != "minutes":
+                                    all_sql[(section, key)] = []
+                                    for statement in sqlparse.split(sqls):
+                                        all_sql[(section, key)].append(statement)
+
                 # checks discovery is also printed
                 #
                 # assume we are still connected. If not, exception will tell real story
@@ -415,7 +427,7 @@ while True:
                                 if sqls and key != "minutes":
                                     if ARGS.verbosity:
                                         printf("%s %s section: %s key: %s\n",
-                                           datetime.datetime.fromtimestamp(time.time()), ME[0],
+                                               datetime.datetime.fromtimestamp(time.time()), ME[0],
                                                section, key)
                                     try:
                                         QUERYCOUNTER += 1
@@ -423,10 +435,11 @@ while True:
                                                                      conn.commit)
                                         sqltimeout.start()
                                         START = timer()
-                                        for statement in sqlparse.split(sqls):
+                                        for statement in all_sql[(section, key)]:
                                             if ARGS.verbosity and ARGS.verbosity > 1:
                                                 printf("%s %s section: %s key: %s sql: %s\n",
-                                                   datetime.datetime.fromtimestamp(time.time()), ME[0],
+                                                       datetime.datetime.fromtimestamp(time.time()),
+                                                       ME[0],
                                                        section, key, statement)
                                             CURS.execute(statement)
                                         startf = timer()
@@ -499,7 +512,8 @@ while True:
                                         printf('%s key=%s.%s ZBXDB-%s: Db execution error: %s\n', \
                                             datetime.datetime.fromtimestamp(time.time()), \
                                             section, key, ecode, emsg.strip())
-                                        if dbe.db_error_needs_new_session(config['db_driver'], ecode):
+                                        if dbe.db_error_needs_new_session(config['db_driver'],
+                                                                          ecode):
                                             raise
                             # end of a section ## time to run the checks again from this section
                             output(config['hostname'], ME[0] + "[query," + section + ",,ela]",
@@ -507,12 +521,12 @@ while True:
                 # release locks that might have been taken
                 if ARGS.verbosity:
                     printf("%s %s rollback\n",
-                       datetime.datetime.fromtimestamp(time.time()), ME[0])
+                           datetime.datetime.fromtimestamp(time.time()), ME[0])
 
                 conn.rollback()
                 if ARGS.verbosity:
                     printf("%s %s rolledback\n",
-                       datetime.datetime.fromtimestamp(time.time()), ME[0])
+                           datetime.datetime.fromtimestamp(time.time()), ME[0])
                 # dump metric for summed elapsed time of this run
                 output(config['hostname'], ME[0] + "[query,,,ela]",
                        timer() - RUNTIMER)
