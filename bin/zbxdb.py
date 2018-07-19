@@ -7,6 +7,8 @@
  options: -c/--cfile configFile
                      configFile contains config for 1 database and
                                 a reference to the checks
+          -p/--parameter parametername to list parameter from configFile
+               where password shows the decrypted form of password_enc
  NOTE: a section whose name contains 'discover' is considered to be handled
            as a special case for LLD -> json arrays
  NOTE: consider using Oracle Wallet instead of coding credentials in config
@@ -129,7 +131,7 @@ ME = os.path.splitext(os.path.basename(__file__))
 STARTTIME = int(time.time())
 PARSER = ArgumentParser()
 PARSER.add_argument("-c", "--cfile", dest="configfile", default=ME[0]+".cfg",
-                    help="Configuration file", metavar="FILE")
+                    help="Configuration file", metavar="FILE", required=True)
 PARSER.add_argument("-v", "--verbosity", action="count",
                     help="increase output verbosity")
 PARSER.add_argument("-p", "--parameter", action="store",
