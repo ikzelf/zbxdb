@@ -15,6 +15,12 @@ def connection_info(conn):
     DATA = C.fetchone()
     conn_info['iname'] = DATA[0]
     conn_info['uname'] = DATA[1]
+
+    C.execute("select count(*) from performance_schema.replication_applier_status")
+    DATA = C.fetchone()
+    if DATA[0] > 0:
+        conn_info['db_role'] = "slave"
+
     C.close()
     return conn_info
 
