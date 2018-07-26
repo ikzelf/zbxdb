@@ -31,18 +31,23 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "0.30"
+VERSION = "0.31"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
     sys.stdout.write(format % args)
     sys.stdout.flush()
 
-def output(host, ikey, values):
+def to_outfile(c, ikey, values):
     """uniform way to generate the output for items"""
     timestamp = int(time.time())
-    OUTF.write(host + " " + ikey + " " + str(timestamp) + " " + str(values)+ "\n")
-    OUTF.flush()
+    if os.path.exists(c['out_file']):
+        if not c['OUTF']:
+            c['OUTF'] = open(c['out_file'], "a")
+    else:
+        c['OUTF'] = open(c['out_file'], "w")
+    c['OUTF'].write(c['hostname'] + " " + ikey + " " + str(timestamp) + " " + str(values)+ "\n")
+    c['OUTF'].flush()
 
 class MyConfigParser(configparser.RawConfigParser):
     """strip comments"""
@@ -63,7 +68,7 @@ def get_config(filename):
               'server': "", 'db_name': "", 'instance_name': "", 'server_port': "",
               'username': "scott", 'password': "tiger", 'role': "normal", 'omode': 0,
               'out_dir': "", 'out_file': "", 'hostname': "", 'checkfile_prefix': "",
-              'site_checks': "", 'password_enc': "",
+              'site_checks': "", 'password_enc': "", 'OUTF': 0,
               'sqltimeout': 0.0}
     CONFIG = MyConfigParser()
     if not os.path.exists(filename):
@@ -229,10 +234,6 @@ while True:
                      ]
         config = get_config(ARGS.configfile)
         config['password'] = decrypted(config['password_enc'])
-        if os.path.exists(config['out_file']):
-            OUTF = open(config['out_file'], "a")
-        else:
-            OUTF = open(config['out_file'], "w")
 
         START = timer()
         if ARGS.verbosity:
@@ -244,7 +245,7 @@ while True:
         conn = dbc.connect(dbdr, config)
         print(conn)
         CONNECTCOUNTER += 1
-        output(config['hostname'], ME[0]+"[connect,status]", 0)
+        to_outfile(config, ME[0]+"[connect,status]", 0)
         CURS = conn.cursor()
         connect_info = dbc.connection_info(conn)
         printf('%s connected db_url %s type %s db_role %s version %s\n'\
@@ -297,10 +298,6 @@ while True:
                        datetime.datetime.fromtimestamp(time.time()), ME[0])
             NOWRUN = int(time.time()) # keep this to compare for when to dump stats
             RUNTIMER = timer() # keep this to compare for when to dump stats
-            if os.path.exists(config['out_file']):
-                OUTF = open(config['out_file'], "a")
-            else:
-                OUTF = open(config['out_file'], "w")
             # loading checks from the various checkfiles:
             NEEDTOLOAD = "no"
             for i in range(len(CHECKFILES)): # at index 0 is the script itself
@@ -325,16 +322,16 @@ while True:
                             NEEDTOLOAD = "yes"
 
             if NEEDTOLOAD == "yes":
-                output(config['hostname'], ME[0] + "[version]", VERSION)
-                output(config['hostname'], ME[0] + "[config,db_type]", config['db_type'])
-                output(config['hostname'], ME[0] + "[config,db_driver]", config['db_driver'])
-                output(config['hostname'], ME[0] + "[config,instance_type]",
+                to_outfile(config, ME[0] + "[version]", VERSION)
+                to_outfile(config, ME[0] + "[config,db_type]", config['db_type'])
+                to_outfile(config, ME[0] + "[config,db_driver]", config['db_driver'])
+                to_outfile(config, ME[0] + "[config,instance_type]",
                        config['instance_type'])
-                output(config['hostname'], ME[0] + "[conn,db_role]",
+                to_outfile(config, ME[0] + "[conn,db_role]",
                        connect_info['db_role'])
-                output(config['hostname'], ME[0] + "[conn,instance_type]",
+                to_outfile(config, ME[0] + "[conn,instance_type]",
                        connect_info['instance_type'])
-                output(config['hostname'], ME[0] + "[conn,dbversion]",
+                to_outfile(config, ME[0] + "[conn,dbversion]",
                        connect_info['dbversion'])
                 OBJECTS_LIST = []
                 SECTIONS_LIST = []
@@ -346,7 +343,7 @@ while True:
                     FILES_LIST.append(E)
 
                 FILES_JSON = '{\"data\":'+json.dumps(FILES_LIST)+'}'
-                output(config['hostname'], ME[0]+".files.lld", FILES_JSON)
+                to_outfile(config, ME[0]+".files.lld", FILES_JSON)
                 for i in range(3, len(CHECKFILES)):
                     # #0 is executable that is also checked for updates
                     # #1 dbc module
@@ -354,24 +351,24 @@ while True:
                     CHECKS = configparser.RawConfigParser()
                     try:
                         CHECKSF = open(CHECKFILES[i]['name'], 'r')
-                        output(config['hostname'], ME[0] + "[checks," + str(i) + \
+                        to_outfile(config, ME[0] + "[checks," + str(i) + \
                                ",name]", CHECKFILES[i]['name'])
-                        output(config['hostname'], ME[0] + "[checks," + str(i) + \
+                        to_outfile(config, ME[0] + "[checks," + str(i) + \
                                ",lmod]",
                                str(int(os.stat(CHECKFILES[i]['name']).st_mtime)))
                         try:
                             CHECKS.read_file(CHECKSF)
                             CHECKSF.close()
-                            output(config['hostname'], ME[0] + "[checks," + str(i) + \
+                            to_outfile(config, ME[0] + "[checks," + str(i) + \
                                    ",status]", 0)
                         except configparser.Error:
-                            output(config['hostname'], ME[0] + "[checks," + str(i) + \
+                            to_outfile(config, ME[0] + "[checks," + str(i) + \
                                    ",status]", 13)
                             printf("%s\tfile %s has parsing errors %s %s ->(13)\n",
                                    datetime.datetime.fromtimestamp(time.time()),
                                    CHECKFILES[i]['name'])
                     except IOError as io_error:
-                        output(config['hostname'], ME[0] + "[checks," + str(i) + ",status]", 11)
+                        to_outfile(config, ME[0] + "[checks," + str(i) + ",status]", 11)
                         printf("%s\tfile %s IOError %s %s ->(11)\n",
                                datetime.datetime.fromtimestamp(time.time()),
                                CHECKFILES[i]['name'],
@@ -404,10 +401,10 @@ while True:
                 # checks are loaded now.
                 SECTIONS_JSON = '{\"data\":'+json.dumps(SECTIONS_LIST)+'}'
                 # printf ("DEBUG lld key: %s json: %s\n", ME[0]+".lld", ROWS_JSON)
-                output(config['hostname'], ME[0]+".section.lld", SECTIONS_JSON)
+                to_outfile(config, ME[0]+".section.lld", SECTIONS_JSON)
                 ROWS_JSON = '{\"data\":'+json.dumps(OBJECTS_LIST)+'}'
                 # printf ("DEBUG lld key: %s json: %s\n", ME[0]+".lld", ROWS_JSON)
-                output(config['hostname'], ME[0] + ".query.lld", ROWS_JSON)
+                to_outfile(config, ME[0] + ".query.lld", ROWS_JSON)
                 # sqls can contain multiple statements per key. sqlparse to split them
                 # now. Otherwise use a lot of extra cycles when splitting at runtime
                 # all_sql { {section, key}: statements }
@@ -424,9 +421,9 @@ while True:
             # checks discovery is also printed
             #
             # assume we are still connected. If not, exception will tell real story
-            output(config['hostname'], ME[0] + "[connect,status]", 0)
-            output(config['hostname'], ME[0] + "[uptime]", int(time.time() - STARTTIME))
-            output(config['hostname'], ME[0] + "[opentime]", int(time.time() - OPENTIME))
+            to_outfile(config, ME[0] + "[connect,status]", 0)
+            to_outfile(config, ME[0] + "[uptime]", int(time.time() - STARTTIME))
+            to_outfile(config, ME[0] + "[opentime]", int(time.time() - OPENTIME))
 
             # the connect status is only real if executed a query ....
             for CHECKS in ALL_CHECKS:
@@ -458,15 +455,12 @@ while True:
                                                    ME[0],
                                                    section, key, statement)
                                         CURS.execute(statement)
+                                    sqltimeout.cancel()
                                     startf = timer()
                                     # output for the last query must include the
                                     # output for the preparing queries is ignored
                                     #        complete key and value
                                     rows = CURS.fetchall()
-                                    if os.path.exists(config['out_file']):
-                                        OUTF = open(config['out_file'], "a")
-                                    else:
-                                        OUTF = open(config['out_file'], "w")
                                     if "discover" in section:
                                         OBJECTS_LIST = []
                                         for row in rows:
@@ -477,19 +471,19 @@ while True:
                                         ROWS_JSON = '{\"data\":'+json.dumps(OBJECTS_LIST)+'}'
                                         # printf ("DEBUG lld key: %s json: %s\n", key,
                                         #          ROWS_JSON)
-                                        output(config['hostname'], key, ROWS_JSON)
-                                        output(config['hostname'], ME[0] + \
+                                        to_outfile(config, key, ROWS_JSON)
+                                        to_outfile(config, ME[0] + \
                                                "[query," + section + "," + \
                                           key + ",status]", 0)
                                     else:
                                         if  rows and len(rows[0]) == 2:
                                             for row in rows:
-                                                output(config['hostname'], row[0], row[1])
-                                            output(config['hostname'], ME[0] + \
+                                                to_outfile(config, row[0], row[1])
+                                            to_outfile(config, ME[0] + \
                                                    "[query," + section + "," +
                                                    key + ",status]", 0)
                                         elif not rows:
-                                            output(config['hostname'], ME[0] + \
+                                            to_outfile(config, ME[0] + \
                                                    "[query," + section + "," +
                                                    key + ",status]", 0)
                                         else:
@@ -497,32 +491,27 @@ while True:
                                                    'SQL format error: %s\n',
                                                    datetime.datetime.fromtimestamp(time.time()),
                                                    section, key, 2, "expect key,value pairs")
-                                            output(config['hostname'], ME[0] + \
+                                            to_outfile(config, ME[0] + \
                                                    "[query," + section + "," +
                                                    key + ",status]", 2)
-                                    sqltimeout.cancel()
                                     fetchela = timer() - startf
                                     ELAPSED = timer() - START
-                                    output(config['hostname'], ME[0] + "[query," + \
+                                    to_outfile(config, ME[0] + "[query," + \
                                            section + "," +
                                            key + ",ela]", ELAPSED)
-                                    output(config['hostname'], ME[0] + "[query," + \
+                                    to_outfile(config, ME[0] + "[query," + \
                                            section + "," +
                                            key + ",fetch]", fetchela)
                                 except dbdr.DatabaseError as dberr:
-                                    ecode, emsg = dbe.db_errorcode(config['db_driver'], dberr)
                                     sqltimeout.cancel()
+                                    ecode, emsg = dbe.db_errorcode(config['db_driver'], dberr)
 
-                                    if os.path.exists(config['out_file']):
-                                        OUTF = open(config['out_file'], "a")
-                                    else:
-                                        OUTF = open(config['out_file'], "w")
                                     ELAPSED = timer() - START
                                     QUERYERROR += 1
-                                    output(config['hostname'], ME[0] + "[query," + \
+                                    to_outfile(config, ME[0] + "[query," + \
                                            section + "," + \
                                         key + ",status]", ecode)
-                                    output(config['hostname'], ME[0] + "[query," + \
+                                    to_outfile(config, ME[0] + "[query," + \
                                            section + "," + \
                                         key + ",ela]", ELAPSED)
                                     printf('%s key=%s.%s ZBXDB-%s: Db execution error: %s\n', \
@@ -532,7 +521,7 @@ while True:
                                                                       ecode):
                                         raise
                         # end of a section ## time to run the checks again from this section
-                        output(config['hostname'], ME[0] + "[query," + section + ",,ela]",
+                        to_outfile(config, ME[0] + "[query," + section + ",,ela]",
                                timer() - SectionTimer)
             # release locks that might have been taken
             if ARGS.verbosity:
@@ -544,13 +533,13 @@ while True:
                 printf("%s %s rolledback\n",
                        datetime.datetime.fromtimestamp(time.time()), ME[0])
             # dump metric for summed elapsed time of this run
-            output(config['hostname'], ME[0] + "[query,,,ela]",
+            to_outfile(config, ME[0] + "[query,,,ela]",
                    timer() - RUNTIMER)
-            output(config['hostname'], ME[0] + "[cpu,user]",
+            to_outfile(config, ME[0] + "[cpu,user]",
                    resource.getrusage(resource.RUSAGE_SELF).ru_utime)
-            output(config['hostname'], ME[0] + "[cpu,sys]",
+            to_outfile(config, ME[0] + "[cpu,sys]",
                    resource.getrusage(resource.RUSAGE_SELF).ru_stime)
-            output(config['hostname'], ME[0] + "[mem,maxrss]",
+            to_outfile(config, ME[0] + "[mem,maxrss]",
                    resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
             # passed all sections
             if ((NOWRUN - STARTTIME) % 3600) == 0:
@@ -574,7 +563,7 @@ while True:
     except dbdr.DatabaseError as dberr:
         ecode, emsg = dbe.db_errorcode(config['db_driver'], dberr)
         ELAPSED = timer() - START
-        output(config['hostname'], ME[0] + "[connect,status]", ecode)
+        to_outfile(config, ME[0] + "[connect,status]", ecode)
         if not dbe.db_error_needs_new_session(config['db_driver'], ecode):
             # from a killed session, crashed instance or similar
             CONNECTERROR += 1
@@ -594,5 +583,4 @@ while True:
             config['username'], config['db_url'])
         time.sleep(SLEEPER)
     except (KeyboardInterrupt, SystemExit):
-        OUTF.close()
         raise
