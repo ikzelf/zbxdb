@@ -31,7 +31,7 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "0.31"
+VERSION = "0.33"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -554,10 +554,10 @@ while True:
                        resource.getrusage(resource.RUSAGE_SELF).ru_stime)
             # try to keep activities on the same starting second:
             SLEEPTIME = 60 - ((int(time.time()) - STARTTIME) % 60)
-            # printf ("%s DEBUG Sleeping for %d seconds\n", \
-                # datetime.datetime.fromtimestamp(time.time()), SLEEPTIME)
-            for i in range(SLEEPTIME):
-                time.sleep(1)
+            if ARGS.verbosity:
+                printf ("%s Sleeping for %d seconds\n", \
+                    datetime.datetime.fromtimestamp(time.time()), SLEEPTIME)
+            time.sleep(SLEEPTIME)
             CONMINS = CONMINS + 1 # not really mins since the checks could
             #                       have taken longer than 1 minute to complete
     except dbdr.DatabaseError as dberr:
