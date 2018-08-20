@@ -31,7 +31,7 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "0.33"
+VERSION = "0.34"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -455,12 +455,12 @@ while True:
                                                    ME[0],
                                                    section, key, statement)
                                         CURS.execute(statement)
-                                    sqltimeout.cancel()
                                     startf = timer()
                                     # output for the last query must include the
                                     # output for the preparing queries is ignored
                                     #        complete key and value
                                     rows = CURS.fetchall()
+                                    sqltimeout.cancel()
                                     if "discover" in section:
                                         OBJECTS_LIST = []
                                         for row in rows:
