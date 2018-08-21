@@ -6,7 +6,7 @@ def db_errorcode(driver, excep):
 
 def db_error_needs_new_session(driver, code):
     """some errors justify a new database connection. In that case return true"""
-    if code in(28, 1012, 1041, 3113, 3114, 3135):
+    if code in(28, 1012, 1041, 3113, 3114, 3117, 3135, 12153):
         print('db_error_needs_new_session:{}\n'.format(code))
         return True
     if code == 15000:
