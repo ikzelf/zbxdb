@@ -31,7 +31,7 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "0.34"
+VERSION = "0.42"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -443,9 +443,9 @@ while True:
                                            section, key)
                                 try:
                                     QUERYCOUNTER += 1
-                                    sqltimeout = threading.Timer(config['sqltimeout'], \
-                                                                 conn.commit)
-                                    sqltimeout.start()
+                                    if "cancel" in dir(conn):
+                                      sqltimeout = threading.Timer(config['sqltimeout'], conn.cancel)
+                                      sqltimeout.start()
                                     START = timer()
                                     for statement in all_sql[(section, key)]:
                                         lstatement=statement
@@ -460,7 +460,8 @@ while True:
                                     # output for the preparing queries is ignored
                                     #        complete key and value
                                     rows = CURS.fetchall()
-                                    sqltimeout.cancel()
+                                    if "cancel" in dir(conn):
+                                      sqltimeout.cancel()
                                     if "discover" in section:
                                         OBJECTS_LIST = []
                                         for row in rows:
@@ -503,7 +504,8 @@ while True:
                                            section + "," +
                                            key + ",fetch]", fetchela)
                                 except dbdr.DatabaseError as dberr:
-                                    sqltimeout.cancel()
+                                    if "cancel" in dir(conn):
+                                        sqltimeout.cancel()
                                     ecode, emsg = dbe.db_errorcode(config['db_driver'], dberr)
 
                                     ELAPSED = timer() - START
@@ -520,6 +522,13 @@ while True:
                                     if dbe.db_error_needs_new_session(config['db_driver'],
                                                                       ecode):
                                         raise
+                                    if ARGS.verbosity:
+                                        printf("%s %s rollback\n",
+                                               datetime.datetime.fromtimestamp(time.time()), ME[0])
+                                    conn.rollback()
+                                    if ARGS.verbosity:
+                                        printf("%s %s rolledback\n",
+                                               datetime.datetime.fromtimestamp(time.time()), ME[0])
                         # end of a section ## time to run the checks again from this section
                         to_outfile(config, ME[0] + "[query," + section + ",,ela]",
                                timer() - SectionTimer)
@@ -581,6 +590,7 @@ while True:
             datetime.datetime.fromtimestamp(time.time()), \
             SLEEPC, SLEEPER, ecode, emsg.strip().replace('\n', ' ').replace('\r', ' '), \
             config['username'], config['db_url'])
+        # set_trace()
         time.sleep(SLEEPER)
     except (KeyboardInterrupt, SystemExit):
         raise
