@@ -16,10 +16,14 @@ def connection_info(conn):
     conn_info['iname'] = DATA[0]
     conn_info['uname'] = DATA[1]
 
-    C.execute("select count(*) from performance_schema.replication_applier_status")
-    DATA = C.fetchone()
-    if DATA[0] > 0:
-        conn_info['db_role'] = "slave"
+    try:
+      C.execute("select count(*) from performance_schema.replication_applier_status")
+      DATA = C.fetchone()
+      if DATA[0] > 0:
+          conn_info['db_role'] = "slave"
+    except:
+      # a bit dirty ... assume primary replication_applier_status is pretty new
+      pass
 
     C.close()
     return conn_info
@@ -37,7 +41,8 @@ def connect(db, c):
                       user=c['username'],
                       password=c['password'],
                       db=c['db_name'],
-                      port=int(c['server_port'])#,
+                      port=int(c['server_port']),
+                      read_timeout=int(c['sqltimeout'])#,
                     #  cursorclass=pymysql.cursors.DictCursor
                     )
     return dbc
