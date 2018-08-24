@@ -31,7 +31,7 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "0.42"
+VERSION = "0.69
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -147,7 +147,7 @@ config = get_config(ARGS.configfile)
 
 if ARGS.parameter:
     if ARGS.parameter == 'password':
-        print ('parameter {}: {}\n'.format(ARGS.parameter,
+        print('parameter {}: {}\n'.format(ARGS.parameter,
                                            decrypted(config[ARGS.parameter+'_enc'])))
     else:
         print('parameter {}: {}\n'.format(ARGS.parameter, config[ARGS.parameter]))
@@ -166,8 +166,8 @@ printf("%s %s found db_type=%s, driver %s; checking for driver\n", \
        datetime.datetime.fromtimestamp(time.time()), ME[0], \
        config['db_type'], config['db_driver'])
 try:
-  dbdr= __import__(config['db_driver'])
-  print(dbdr)
+    dbdr= __import__(config['db_driver'])
+    print(dbdr)
 except:
     printf("%s supported will be oracle(cx_Oracle), postgres(psycopg2), \
            mysql(mysql.connector), mssql(pymssql/_mssql), db2(ibm_db_dbi)\n", ME[0])
@@ -178,7 +178,7 @@ except:
 printf("%s %s driver %s loaded\n",
        datetime.datetime.fromtimestamp(time.time()), ME[0], config['db_driver'])
 try:
-  dbe = importlib.import_module("drivererrors." + config['db_driver'])
+    dbe = importlib.import_module("drivererrors." + config['db_driver'])
 except:
     printf("Failed to load driver error routines\n")
     printf("Looked in %s\n", sys.path)
@@ -187,7 +187,7 @@ except:
 printf("%s %s driver drivererrors for %s loaded\n",
        datetime.datetime.fromtimestamp(time.time()), ME[0], config['db_driver'])
 try:
-  dbc= importlib.import_module("dbconnections." + config['db_type'])
+    dbc= importlib.import_module("dbconnections." + config['db_type'])
 except:
     printf("Failed to load dbconnections routines for %s\n", config['db_type'])
     printf("Looked in %s\n", sys.path)
@@ -221,7 +221,7 @@ SLEEPER = 1
 PERROR = 0
 while True:
     try:
-        for i in range (0, 2):
+        for i in range(0, 2):
             if CHECKFILES[i]['lmod'] != os.stat(CHECKFILES[i]['name']).st_mtime:
                 printf("%s %s changed, restarting ..\n",
                        datetime.datetime.fromtimestamp(time.time()), CHECKFILES[i]['name'])
@@ -242,14 +242,17 @@ while True:
                    dbc.connect_string(config))
         # with dbc.connect(dbdr, config) as conn:
         # pymysql returns a cursor from __enter__() :-(
+        conn_has_cancel = False
         conn = dbc.connect(dbdr, config)
+        if "cancel" in dir(conn):
+            conn_has_cancel = True
         print(conn)
         CONNECTCOUNTER += 1
         to_outfile(config, ME[0]+"[connect,status]", 0)
         CURS = conn.cursor()
         connect_info = dbc.connection_info(conn)
         printf('%s connected db_url %s type %s db_role %s version %s\n'\
-               '%s user %s %s sid,serial %d,%d instance %s as %s\n',
+               '%s user %s %s sid,serial %d,%d instance %s as %s cancel:%s\n',
                datetime.datetime.fromtimestamp(time.time()), \
                config['db_url'], connect_info['instance_type'], connect_info['db_role'], \
                connect_info['dbversion'], \
@@ -257,7 +260,7 @@ while True:
                config['username'], connect_info['uname'], connect_info['sid'], \
                connect_info['serial'], \
                connect_info['iname'], \
-               config['role'])
+               config['role'], conn_has_cancel)
         if  connect_info['db_role'] in ["PHYSICAL STANDBY", "SLAVE"]:
             CHECKSFILE = os.path.join(config['checksfile_prefix'], \
                                        config['db_type'], "standby" +
@@ -326,13 +329,13 @@ while True:
                 to_outfile(config, ME[0] + "[config,db_type]", config['db_type'])
                 to_outfile(config, ME[0] + "[config,db_driver]", config['db_driver'])
                 to_outfile(config, ME[0] + "[config,instance_type]",
-                       config['instance_type'])
+                           config['instance_type'])
                 to_outfile(config, ME[0] + "[conn,db_role]",
-                       connect_info['db_role'])
+                           connect_info['db_role'])
                 to_outfile(config, ME[0] + "[conn,instance_type]",
-                       connect_info['instance_type'])
+                           connect_info['instance_type'])
                 to_outfile(config, ME[0] + "[conn,dbversion]",
-                       connect_info['dbversion'])
+                           connect_info['dbversion'])
                 OBJECTS_LIST = []
                 SECTIONS_LIST = []
                 FILES_LIST = []
@@ -355,7 +358,7 @@ while True:
                                ",name]", CHECKFILES[i]['name'])
                         to_outfile(config, ME[0] + "[checks," + str(i) + \
                                ",lmod]",
-                               str(int(os.stat(CHECKFILES[i]['name']).st_mtime)))
+                                   str(int(os.stat(CHECKFILES[i]['name']).st_mtime)))
                         try:
                             CHECKS.read_file(CHECKSF)
                             CHECKSF.close()
@@ -443,12 +446,14 @@ while True:
                                            section, key)
                                 try:
                                     QUERYCOUNTER += 1
-                                    if "cancel" in dir(conn):
-                                      sqltimeout = threading.Timer(config['sqltimeout'], conn.cancel)
-                                      sqltimeout.start()
+                                    if conn_has_cancel:
+                                        # pymysql has no cancel but does have timeout in connect
+                                        sqltimeout = threading.Timer(config['sqltimeout'],
+                                                                     conn.cancel)
+                                        sqltimeout.start()
                                     START = timer()
                                     for statement in all_sql[(section, key)]:
-                                        lstatement=statement
+                                        lstatement = statement
                                         if ARGS.verbosity and ARGS.verbosity > 1:
                                             printf("%s %s section: %s key: %s sql: %s\n",
                                                    datetime.datetime.fromtimestamp(time.time()),
@@ -460,8 +465,8 @@ while True:
                                     # output for the preparing queries is ignored
                                     #        complete key and value
                                     rows = CURS.fetchall()
-                                    if "cancel" in dir(conn):
-                                      sqltimeout.cancel()
+                                    if conn_has_cancel:
+                                        sqltimeout.cancel()
                                     if "discover" in section:
                                         OBJECTS_LIST = []
                                         for row in rows:
@@ -480,29 +485,29 @@ while True:
                                         if  rows and len(rows[0]) == 2:
                                             for row in rows:
                                                 to_outfile(config, row[0], row[1])
-                                            to_outfile(config, ME[0] + \
-                                                   "[query," + section + "," +
-                                                   key + ",status]", 0)
+                                            to_outfile(config, ME[0] +
+                                                       "[query," + section + "," +
+                                                       key + ",status]", 0)
                                         elif not rows:
-                                            to_outfile(config, ME[0] + \
-                                                   "[query," + section + "," +
-                                                   key + ",status]", 0)
+                                            to_outfile(config, ME[0] + "[query," +
+                                                       section + "," +
+                                                       key + ",status]", 0)
                                         else:
                                             printf('%s key=%s.%s ZBXDB-%d: ' +
                                                    'SQL format error: %s\n',
                                                    datetime.datetime.fromtimestamp(time.time()),
                                                    section, key, 2, "expect key,value pairs")
-                                            to_outfile(config, ME[0] + \
-                                                   "[query," + section + "," +
-                                                   key + ",status]", 2)
+                                            to_outfile(config, ME[0] +
+                                                       "[query," + section + "," +
+                                                       key + ",status]", 2)
                                     fetchela = timer() - startf
                                     ELAPSED = timer() - START
-                                    to_outfile(config, ME[0] + "[query," + \
-                                           section + "," +
-                                           key + ",ela]", ELAPSED)
-                                    to_outfile(config, ME[0] + "[query," + \
-                                           section + "," +
-                                           key + ",fetch]", fetchela)
+                                    to_outfile(config, ME[0] + "[query," +
+                                               section + "," +
+                                               key + ",ela]", ELAPSED)
+                                    to_outfile(config, ME[0] + "[query," +
+                                               section + "," +
+                                               key + ",fetch]", fetchela)
                                 except dbdr.DatabaseError as dberr:
                                     if "cancel" in dir(conn):
                                         sqltimeout.cancel()
@@ -531,7 +536,7 @@ while True:
                                                datetime.datetime.fromtimestamp(time.time()), ME[0])
                         # end of a section ## time to run the checks again from this section
                         to_outfile(config, ME[0] + "[query," + section + ",,ela]",
-                               timer() - SectionTimer)
+                                   timer() - SectionTimer)
             # release locks that might have been taken
             if ARGS.verbosity:
                 printf("%s %s rollback\n",
@@ -543,13 +548,13 @@ while True:
                        datetime.datetime.fromtimestamp(time.time()), ME[0])
             # dump metric for summed elapsed time of this run
             to_outfile(config, ME[0] + "[query,,,ela]",
-                   timer() - RUNTIMER)
+                       timer() - RUNTIMER)
             to_outfile(config, ME[0] + "[cpu,user]",
-                   resource.getrusage(resource.RUSAGE_SELF).ru_utime)
+                       resource.getrusage(resource.RUSAGE_SELF).ru_utime)
             to_outfile(config, ME[0] + "[cpu,sys]",
-                   resource.getrusage(resource.RUSAGE_SELF).ru_stime)
+                       resource.getrusage(resource.RUSAGE_SELF).ru_stime)
             to_outfile(config, ME[0] + "[mem,maxrss]",
-                   resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+                       resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
             # passed all sections
             if ((NOWRUN - STARTTIME) % 3600) == 0:
                 gc.collect()
@@ -564,7 +569,7 @@ while True:
             # try to keep activities on the same starting second:
             SLEEPTIME = 60 - ((int(time.time()) - STARTTIME) % 60)
             if ARGS.verbosity:
-                printf ("%s Sleeping for %d seconds\n", \
+                printf("%s Sleeping for %d seconds\n", \
                     datetime.datetime.fromtimestamp(time.time()), SLEEPTIME)
             time.sleep(SLEEPTIME)
             CONMINS = CONMINS + 1 # not really mins since the checks could
