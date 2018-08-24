@@ -38,5 +38,6 @@ def connect(db, c):
                       database=c['db_name'],
                       port=c['server_port'],
                       user=c['username'],
-                      password=c['password']
+                      password=c['password'],
+                      timeout=c['sqltimeout']
                     )
