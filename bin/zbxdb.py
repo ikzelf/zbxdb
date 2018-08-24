@@ -509,7 +509,7 @@ while True:
                                                section + "," +
                                                key + ",fetch]", fetchela)
                                 except dbdr.DatabaseError as dberr:
-                                    if "cancel" in dir(conn):
+                                    if conn_has_cancel:
                                         sqltimeout.cancel()
                                     ecode, emsg = dbe.db_errorcode(config['db_driver'], dberr)
 
