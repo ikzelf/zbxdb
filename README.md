@@ -1,7 +1,7 @@
 # zbxdb
 Zabbix Database monitoring plugin; started as a copy from zbxora-1.98
 
-Written in python, tested with python 3.6
+Written in python, tested with **python 3.6**
 Using drivers available for python
 purpose is monitoring any database in an efficient way.
 Using zabbix_sender to upload data from crontab
