@@ -178,10 +178,10 @@ application. Tested are:
 - Oracle with cx_Oracle
 - postgres with psycopg2
 - mssql with pytds
+- mysql with pymysql
+- cockroachDB with psycopg2
 
 Others are in the pipeline, like:
-- cockroachDB with psycopg2
-- mysql with mysql.connector
 - db2 with ibm_db_dbi
 
 Just try your database and see what happens.
