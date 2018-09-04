@@ -61,54 +61,54 @@ mssql config file: zbxdb.mymssqldb.cfg
 --------------------------------------
 ```
 [zbxdb]
-db_url: //localhost:1466/master
-db_type: mssql
-db_driver: pytds
-username: cistats
-password: knowoneknows
-server: mysqlserverhost
-port:  1466
-instance_type: rdbms
-role: normal
+db_url= //localhost:1466/master
+db_type= mssql
+db_driver= pytds
+username= cistats
+password= knowoneknows
+server= mysqlserverhost
+port=  1466
+instance_type= rdbms
+role= normal
 # for ASM instance role should be SYSDBA
-out_dir: $HOME/zbxdb_out
-hostname: testhost
-checks_dir: etc/zbxdb_checks
-site_checks: sap,ebs
+out_dir= $HOME/zbxdb_out
+hostname= testhost
+checks_dir= etc/zbxdb_checks
+site_checks= sap,ebs
 ```
 oracle config file: zbxdb.odb.cfg
 --------------------------------------
 ```
 [zbxdb]
-db_url: //localhost:15214/fsdb02
-db_type: oracle
-db_driver: cx_Oracle
-username: cistats
-password: knowoneknows
-instance_type: rdbms
-role: normal
+db_url= //localhost:15214/fsdb02
+db_type= oracle
+db_driver= cx_Oracle
+username= cistats
+password= knowoneknows
+instance_type= rdbms
+role= normal
 # for ASM instance role should be SYSDBA
-out_dir: $HOME/zbxdb_out
-hostname: testhost
-checks_dir: etc/zbxdb_checks
-site_checks: sap,ebs
+out_dir= $HOME/zbxdb_out
+hostname= testhost
+checks_dir= etc/zbxdb_checks
+site_checks= sap,ebs
 ```
 
 postgres config file: zbxdb.pgdb.cfg
 --------------------------------------
 ```
 [zbxdb]
-db_url: localhost:5432
-username: cistats
-password: knowoneknows
-db_type: postgres
-db_driver: psycopg2 
-instance_type: rdbms
-role: normal
-out_dir: $HOME/zbxora_out
-hostname: testhost
-checks_dir: etc/zbxdb_checks
-site_checks: NONE
+db_url= localhost:5432
+username= cistats
+password= knowoneknows
+db_type= postgres
+db_driver= psycopg2 
+instance_type= rdbms
+role= normal
+out_dir= $HOME/zbxora_out
+hostname= testhost
+checks_dir= etc/zbxdb_checks
+site_checks= NONE
 ```
 
 Assuming bin/ is in PATH:
