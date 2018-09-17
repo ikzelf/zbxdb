@@ -511,7 +511,7 @@ while True:
                                 except dbdr.DatabaseError as dberr:
                                     if conn_has_cancel:
                                         sqltimeout.cancel()
-                                    ecode, emsg = dbe.db_errorcode(config['db_driver'], dberr)
+                                    ecode, emsg = dbe.db_errorcode(dbdr, dberr)
 
                                     ELAPSED = timer() - START
                                     QUERYERROR += 1
@@ -524,7 +524,7 @@ while True:
                                     printf('%s key=%s.%s ZBXDB-%s: Db execution error: %s\n', \
                                         datetime.datetime.fromtimestamp(time.time()), \
                                         section, key, ecode, emsg.strip())
-                                    if dbe.db_error_needs_new_session(config['db_driver'],
+                                    if dbe.db_error_needs_new_session(dbdr,
                                                                       ecode):
                                         raise
                                     if ARGS.verbosity:
@@ -575,10 +575,10 @@ while True:
             CONMINS = CONMINS + 1 # not really mins since the checks could
             #                       have taken longer than 1 minute to complete
     except dbdr.DatabaseError as dberr:
-        ecode, emsg = dbe.db_errorcode(config['db_driver'], dberr)
+        ecode, emsg = dbe.db_errorcode(dbdr, dberr)
         ELAPSED = timer() - START
         to_outfile(config, ME[0] + "[connect,status]", ecode)
-        if not dbe.db_error_needs_new_session(config['db_driver'], ecode):
+        if not dbe.db_error_needs_new_session(dbdr, ecode):
             # from a killed session, crashed instance or similar
             CONNECTERROR += 1
         if PERROR != ecode:
