@@ -31,7 +31,7 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "0.75"
+VERSION = "0.76"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -98,7 +98,13 @@ def get_config(filename):
                                       ".zbx")
     config['hostname'] = CONFIG.get(ME[0], "hostname")
     config['checksfile_prefix'] = os.path.expandvars(CONFIG.get(ME[0], "checks_dir"))
-    config['site_checks'] = CONFIG.get(ME[0], "site_checks")
+    config['site_checks'] = ""
+    try:
+        z = CONFIG.get(ME[0], "site_checks")
+        if z != "NONE":
+            config['site_checks'] = z
+    except configparser.NoOptionError:
+        pass
     try:
         config['sqltimeout'] = float(CONFIG.get(ME[0], "sql_timeout"))
     except configparser.NoOptionError:
@@ -211,7 +217,7 @@ CONNECTCOUNTER = 0
 CONNECTERROR = 0
 QUERYCOUNTER = 0
 QUERYERROR = 0
-if config['site_checks'] and config['site_checks'] != "NONE":
+if config['site_checks']:
     printf("%s site_checks: %s\n", \
         datetime.datetime.fromtimestamp(time.time()), config['site_checks'])
 printf("%s out_file:%s\n", \
@@ -276,7 +282,7 @@ while True:
                config['sqltimeout'])
         FILES = [CHECKSFILE]
         CHECKFILES.append({'name': CHECKSFILE, 'lmod': 0})
-        if config['site_checks'] != "NONE":
+        if config['site_checks']:
             for addition in config['site_checks'].split(","):
                 addfile = os.path.join(config['checksfile_prefix'], config['db_type'], \
                                        addition + ".cfg")
