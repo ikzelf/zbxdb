@@ -40,7 +40,10 @@ cd $HOME/$ME/in
   cnt=`ls|wc -l`
   if [ $cnt -gt 0 ]
   then
-    cat *| zabbix_sender -z 127.0.0.1 -T -i -
+    ls|while read file
+    do
+      cat $file | zabbix_sender -z 127.0.0.1 -T -i - | sed "s/^/$file /"
+    done
     tar -cf - *|gzip -9 >../archive/zbx_${NOW}.tar.gz
     rm *
   fi

@@ -31,7 +31,7 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "0.76"
+VERSION = "0.77"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -137,6 +137,13 @@ def get_config(filename):
         INIF.close()
 
     return config
+
+def cancel_sql(c, s, k):
+    printf("%s %s cancel_sql %s %s\n",
+       datetime.datetime.fromtimestamp(time.time()), ME[0], s, k)
+    c.cancel()
+    printf("%s %s canceled   %s %s\n",
+       datetime.datetime.fromtimestamp(time.time()), ME[0], s, k)
 
 ME = os.path.splitext(os.path.basename(__file__))
 STARTTIME = int(time.time())
@@ -455,7 +462,7 @@ while True:
                                     if conn_has_cancel:
                                         # pymysql has no cancel but does have timeout in connect
                                         sqltimeout = threading.Timer(config['sqltimeout'],
-                                                                     conn.cancel)
+                                                                     cancel_sql, [conn, section, key])
                                         sqltimeout.start()
                                     START = timer()
                                     for statement in all_sql[(section, key)]:
