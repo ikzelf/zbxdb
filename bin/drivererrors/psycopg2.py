@@ -7,7 +7,7 @@ def db_errorcode(driver, excep):
     # - psycopg2.OperationalError: FATAL:  no pg_hba.conf entry for host
     # - psycopg2.OperationalError: server closed the connection unexpectedly
     # - psycopg2.OperationalError: could not connect to server: Connection refused
-    if driver.OperationalError:
+    if driver.OperationalError and (not excep.pgcode):
         c = 1001
     elif excep.pgcode is None:
         c = 1031
