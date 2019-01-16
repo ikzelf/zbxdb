@@ -52,4 +52,6 @@ def connect(db, c):
         c['omode'] = db.SYSASM
     if c['role'].upper() == "SYSDBA":
         c['omode'] = db.SYSDBA
-    return db.connect(connect_string(c), mode=c['omode'])
+    x = db.connect(connect_string(c), mode=c['omode'])
+    x.module = c['ME']
+    return x

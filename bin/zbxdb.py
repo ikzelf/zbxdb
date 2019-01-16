@@ -62,13 +62,13 @@ def decrypted(pw_enc):
     """return decrypted password"""
     return base64.b64decode(pw_enc).decode("utf-8", "ignore")
 
-def get_config(filename):
+def get_config(filename, me):
     """read the specified configuration file"""
     config = {'db_url': "", 'db_type': "", 'db_driver': "", 'instance_type': "rdbms",
               'server': "", 'db_name': "", 'instance_name': "", 'server_port': "",
               'username': "scott", 'password': "tiger", 'role': "normal", 'omode': 0,
               'out_dir': "", 'out_file': "", 'hostname': "", 'checkfile_prefix': "",
-              'site_checks': "", 'password_enc': "", 'OUTF': 0,
+              'site_checks': "", 'password_enc': "", 'OUTF': 0, 'ME': me,
               'sqltimeout': 0.0}
     CONFIG = MyConfigParser()
     if not os.path.exists(filename):
@@ -76,53 +76,53 @@ def get_config(filename):
 
     INIF = open(filename, 'r')
     CONFIG.read_file(INIF)
-    config['db_url'] = CONFIG.get(ME[0], "db_url")
-    config['db_type'] = CONFIG.get(ME[0], "db_type")
-    config['db_driver'] = CONFIG.get(ME[0], "db_driver")
-    config['instance_type'] = CONFIG.get(ME[0], "instance_type")
-    config['username'] = CONFIG.get(ME[0], "username")
+    config['db_url'] = CONFIG.get(me, "db_url")
+    config['db_type'] = CONFIG.get(me, "db_type")
+    config['db_driver'] = CONFIG.get(me, "db_driver")
+    config['instance_type'] = CONFIG.get(me, "instance_type")
+    config['username'] = CONFIG.get(me, "username")
     try:
-        config['password'] = CONFIG.get(ME[0], "password")
+        config['password'] = CONFIG.get(me, "password")
     except configparser.NoOptionError:
         config['password'] = ""
     try:
-        enc = CONFIG.get(ME[0], "password_enc")
+        enc = CONFIG.get(me, "password_enc")
     except configparser.NoOptionError:
         enc = ""
     config['password_enc'] = bytearray(enc, 'utf-8')
 
-    config['role'] = CONFIG.get(ME[0], "role")
-    config['out_dir'] = os.path.expandvars(CONFIG.get(ME[0], "out_dir"))
+    config['role'] = CONFIG.get(me, "role")
+    config['out_dir'] = os.path.expandvars(CONFIG.get(me, "out_dir"))
     config['out_file'] = os.path.join(config['out_dir'],
                                       str(os.path.splitext(os.path.basename(filename))[0]) +
                                       ".zbx")
-    config['hostname'] = CONFIG.get(ME[0], "hostname")
-    config['checksfile_prefix'] = os.path.expandvars(CONFIG.get(ME[0], "checks_dir"))
+    config['hostname'] = CONFIG.get(me, "hostname")
+    config['checksfile_prefix'] = os.path.expandvars(CONFIG.get(me, "checks_dir"))
     config['site_checks'] = ""
     try:
-        z = CONFIG.get(ME[0], "site_checks")
+        z = CONFIG.get(me, "site_checks")
         if z != "NONE":
             config['site_checks'] = z
     except configparser.NoOptionError:
         pass
     try:
-        config['sqltimeout'] = float(CONFIG.get(ME[0], "sql_timeout"))
+        config['sqltimeout'] = float(CONFIG.get(me, "sql_timeout"))
     except configparser.NoOptionError:
         config['sqltimeout'] = 60.0
     try:
-        config['server'] = CONFIG.get(ME[0], "server")
+        config['server'] = CONFIG.get(me, "server")
     except configparser.NoOptionError:
         pass
     try:
-        config['server_port'] = CONFIG.get(ME[0], "server_port")
+        config['server_port'] = CONFIG.get(me, "server_port")
     except configparser.NoOptionError:
         pass
     try:
-        config['db_name'] = CONFIG.get(ME[0], "db_name")
+        config['db_name'] = CONFIG.get(me, "db_name")
     except configparser.NoOptionError:
         pass
     try:
-        config['instance_name'] = CONFIG.get(ME[0], "instance_name")
+        config['instance_name'] = CONFIG.get(me, "instance_name")
     except configparser.NoOptionError:
         pass
 
@@ -131,8 +131,8 @@ def get_config(filename):
     if config['password']:
         enc = encrypted(config['password'])
         INIF = open(filename, 'w')
-        CONFIG.set(ME[0], 'password', '')
-        CONFIG.set(ME[0], 'password_enc', enc.decode())
+        CONFIG.set(me, 'password', '')
+        CONFIG.set(me, 'password_enc', enc.decode())
         CONFIG.write(INIF)
         INIF.close()
 
@@ -140,15 +140,19 @@ def get_config(filename):
 
 def cancel_sql(c, s, k):
     printf("%s %s cancel_sql %s %s\n",
-       datetime.datetime.fromtimestamp(time.time()), ME[0], s, k)
+       datetime.datetime.fromtimestamp(time.time()), ME, s, k)
     c.cancel()
     printf("%s %s canceled   %s %s\n",
-       datetime.datetime.fromtimestamp(time.time()), ME[0], s, k)
+       datetime.datetime.fromtimestamp(time.time()), ME, s, k)
 
-ME = os.path.splitext(os.path.basename(__file__))
+ME = os.path.splitext(os.path.basename(__file__))[0]
+if (int(platform.python_version().split('.')[0]) < 3):
+    printf("%s needs at least python version 3, currently %s",ME, platform.python_version())
+    sys.exit(1)
+    
 STARTTIME = int(time.time())
 PARSER = ArgumentParser()
-PARSER.add_argument("-c", "--cfile", dest="configfile", default=ME[0]+".cfg",
+PARSER.add_argument("-c", "--cfile", dest="configfile", default=ME+".cfg",
                     help="Configuration file", metavar="FILE", required=True)
 PARSER.add_argument("-v", "--verbosity", action="count",
                     help="increase output verbosity")
@@ -156,7 +160,7 @@ PARSER.add_argument("-p", "--parameter", action="store",
                     help="show parameter from configfile")
 ARGS = PARSER.parse_args()
 
-config = get_config(ARGS.configfile)
+config = get_config(ARGS.configfile, ME)
 
 if ARGS.parameter:
     if ARGS.parameter == 'password':
@@ -168,7 +172,7 @@ if ARGS.parameter:
 
 printf("%s start python-%s %s-%s pid=%s Connecting for hostname %s...\n", \
        datetime.datetime.fromtimestamp(STARTTIME), \
-       platform.python_version(), ME[0], VERSION, os.getpid(), config['hostname']
+       platform.python_version(), ME, VERSION, os.getpid(), config['hostname']
       )
 if config['password']:
     printf("%s first encrypted the plaintext password and removed from config\n", \
@@ -176,20 +180,20 @@ if config['password']:
           )
 
 printf("%s %s found db_type=%s, driver %s; checking for driver\n", \
-       datetime.datetime.fromtimestamp(time.time()), ME[0], \
+       datetime.datetime.fromtimestamp(time.time()), ME, \
        config['db_type'], config['db_driver'])
 try:
     dbdr= __import__(config['db_driver'])
     print(dbdr)
 except:
     printf("%s supported will be oracle(cx_Oracle), postgres(psycopg2), \
-           mysql(mysql.connector), mssql(pymssql/_mssql), db2(ibm_db_dbi)\n", ME[0])
-    printf("%s tested are oracle(cx_Oracle), postgres(psycopg2)\n", ME[0])
+           mysql(mysql.connector), mssql(pymssql/_mssql), db2(ibm_db_dbi)\n", ME)
+    printf("%s tested are oracle(cx_Oracle), postgres(psycopg2)\n", ME)
     printf("Don't forget to install the drivers first ...\n")
     raise
 
 printf("%s %s driver %s loaded\n",
-       datetime.datetime.fromtimestamp(time.time()), ME[0], config['db_driver'])
+       datetime.datetime.fromtimestamp(time.time()), ME, config['db_driver'])
 try:
     dbe = importlib.import_module("drivererrors." + config['db_driver'])
 except:
@@ -198,7 +202,7 @@ except:
     raise
 
 printf("%s %s driver drivererrors for %s loaded\n",
-       datetime.datetime.fromtimestamp(time.time()), ME[0], config['db_driver'])
+       datetime.datetime.fromtimestamp(time.time()), ME, config['db_driver'])
 try:
     dbc= importlib.import_module("dbconnections." + config['db_type'])
 except:
@@ -207,12 +211,12 @@ except:
     raise
 
 printf("%s %s dbconnections for %s loaded\n",
-       datetime.datetime.fromtimestamp(time.time()), ME[0], config['db_type'])
+       datetime.datetime.fromtimestamp(time.time()), ME, config['db_type'])
 print(dbc)
 print(dbe)
 if ARGS.verbosity:
     printf("%s %s connect string: %s\n",
-           datetime.datetime.fromtimestamp(time.time()), ME[0], dbc.connect_string(config))
+           datetime.datetime.fromtimestamp(time.time()), ME, dbc.connect_string(config))
 
 CHECKFILES = [{'name': __file__, 'lmod': os.stat(__file__).st_mtime},
               {'name': dbc.__file__, 'lmod': os.stat(dbc.__file__).st_mtime},
@@ -245,7 +249,7 @@ while True:
                       {'name': dbc.__file__, 'lmod': os.stat(dbc.__file__).st_mtime},
                       {'name': dbe.__file__, 'lmod': os.stat(dbe.__file__).st_mtime}
                      ]
-        config = get_config(ARGS.configfile)
+        config = get_config(ARGS.configfile, ME)
         config['password'] = decrypted(config['password_enc'])
 
         START = timer()
@@ -261,7 +265,7 @@ while True:
             conn_has_cancel = True
         print(conn)
         CONNECTCOUNTER += 1
-        to_outfile(config, ME[0]+"[connect,status]", 0)
+        to_outfile(config, ME+"[connect,status]", 0)
         CURS = conn.cursor()
         connect_info = dbc.connection_info(conn)
         printf('%s connected db_url %s type %s db_role %s version %s\n'\
@@ -311,7 +315,7 @@ while True:
         while True:
             if ARGS.verbosity:
                 printf("%s %s while True\n",
-                       datetime.datetime.fromtimestamp(time.time()), ME[0])
+                       datetime.datetime.fromtimestamp(time.time()), ME)
             NOWRUN = int(time.time()) # keep this to compare for when to dump stats
             RUNTIMER = timer() # keep this to compare for when to dump stats
             # loading checks from the various checkfiles:
@@ -338,16 +342,16 @@ while True:
                             NEEDTOLOAD = "yes"
 
             if NEEDTOLOAD == "yes":
-                to_outfile(config, ME[0] + "[version]", VERSION)
-                to_outfile(config, ME[0] + "[config,db_type]", config['db_type'])
-                to_outfile(config, ME[0] + "[config,db_driver]", config['db_driver'])
-                to_outfile(config, ME[0] + "[config,instance_type]",
+                to_outfile(config, ME + "[version]", VERSION)
+                to_outfile(config, ME + "[config,db_type]", config['db_type'])
+                to_outfile(config, ME + "[config,db_driver]", config['db_driver'])
+                to_outfile(config, ME + "[config,instance_type]",
                            config['instance_type'])
-                to_outfile(config, ME[0] + "[conn,db_role]",
+                to_outfile(config, ME + "[conn,db_role]",
                            connect_info['db_role'])
-                to_outfile(config, ME[0] + "[conn,instance_type]",
+                to_outfile(config, ME + "[conn,instance_type]",
                            connect_info['instance_type'])
-                to_outfile(config, ME[0] + "[conn,dbversion]",
+                to_outfile(config, ME + "[conn,dbversion]",
                            connect_info['dbversion'])
                 OBJECTS_LIST = []
                 SECTIONS_LIST = []
@@ -359,7 +363,7 @@ while True:
                     FILES_LIST.append(E)
 
                 FILES_JSON = '{\"data\":'+json.dumps(FILES_LIST)+'}'
-                to_outfile(config, ME[0]+".files.lld", FILES_JSON)
+                to_outfile(config, ME+".files.lld", FILES_JSON)
                 for i in range(3, len(CHECKFILES)):
                     # #0 is executable that is also checked for updates
                     # #1 dbc module
@@ -367,24 +371,24 @@ while True:
                     CHECKS = configparser.RawConfigParser()
                     try:
                         CHECKSF = open(CHECKFILES[i]['name'], 'r')
-                        to_outfile(config, ME[0] + "[checks," + str(i) + \
+                        to_outfile(config, ME + "[checks," + str(i) + \
                                ",name]", CHECKFILES[i]['name'])
-                        to_outfile(config, ME[0] + "[checks," + str(i) + \
+                        to_outfile(config, ME + "[checks," + str(i) + \
                                ",lmod]",
                                    str(int(os.stat(CHECKFILES[i]['name']).st_mtime)))
                         try:
                             CHECKS.read_file(CHECKSF)
                             CHECKSF.close()
-                            to_outfile(config, ME[0] + "[checks," + str(i) + \
+                            to_outfile(config, ME + "[checks," + str(i) + \
                                    ",status]", 0)
                         except configparser.Error:
-                            to_outfile(config, ME[0] + "[checks," + str(i) + \
+                            to_outfile(config, ME + "[checks," + str(i) + \
                                    ",status]", 13)
                             printf("%s\tfile %s has parsing errors %s %s ->(13)\n",
                                    datetime.datetime.fromtimestamp(time.time()),
                                    CHECKFILES[i]['name'])
                     except IOError as io_error:
-                        to_outfile(config, ME[0] + "[checks," + str(i) + ",status]", 11)
+                        to_outfile(config, ME + "[checks," + str(i) + ",status]", 11)
                         printf("%s\tfile %s IOError %s %s ->(11)\n",
                                datetime.datetime.fromtimestamp(time.time()),
                                CHECKFILES[i]['name'],
@@ -416,11 +420,11 @@ while True:
                                     key, sqls[0 : 60].replace('\n', ' ').replace('\r', ' '))
                 # checks are loaded now.
                 SECTIONS_JSON = '{\"data\":'+json.dumps(SECTIONS_LIST)+'}'
-                # printf ("DEBUG lld key: %s json: %s\n", ME[0]+".lld", ROWS_JSON)
-                to_outfile(config, ME[0]+".section.lld", SECTIONS_JSON)
+                # printf ("DEBUG lld key: %s json: %s\n", ME+".lld", ROWS_JSON)
+                to_outfile(config, ME+".section.lld", SECTIONS_JSON)
                 ROWS_JSON = '{\"data\":'+json.dumps(OBJECTS_LIST)+'}'
-                # printf ("DEBUG lld key: %s json: %s\n", ME[0]+".lld", ROWS_JSON)
-                to_outfile(config, ME[0] + ".query.lld", ROWS_JSON)
+                # printf ("DEBUG lld key: %s json: %s\n", ME+".lld", ROWS_JSON)
+                to_outfile(config, ME + ".query.lld", ROWS_JSON)
                 # sqls can contain multiple statements per key. sqlparse to split them
                 # now. Otherwise use a lot of extra cycles when splitting at runtime
                 # all_sql { {section, key}: statements }
@@ -437,9 +441,9 @@ while True:
             # checks discovery is also printed
             #
             # assume we are still connected. If not, exception will tell real story
-            to_outfile(config, ME[0] + "[connect,status]", 0)
-            to_outfile(config, ME[0] + "[uptime]", int(time.time() - STARTTIME))
-            to_outfile(config, ME[0] + "[opentime]", int(time.time() - OPENTIME))
+            to_outfile(config, ME + "[connect,status]", 0)
+            to_outfile(config, ME + "[uptime]", int(time.time() - STARTTIME))
+            to_outfile(config, ME + "[opentime]", int(time.time() - OPENTIME))
 
             # the connect status is only real if executed a query ....
             for CHECKS in ALL_CHECKS:
@@ -455,7 +459,7 @@ while True:
                             if sqls and key != "minutes":
                                 if ARGS.verbosity:
                                     printf("%s %s section: %s key: %s\n",
-                                           datetime.datetime.fromtimestamp(time.time()), ME[0],
+                                           datetime.datetime.fromtimestamp(time.time()), ME,
                                            section, key)
                                 try:
                                     QUERYCOUNTER += 1
@@ -470,7 +474,7 @@ while True:
                                         if ARGS.verbosity and ARGS.verbosity > 1:
                                             printf("%s %s section: %s key: %s sql: %s\n",
                                                    datetime.datetime.fromtimestamp(time.time()),
-                                                   ME[0],
+                                                   ME,
                                                    section, key, statement)
                                         CURS.execute(statement)
                                     startf = timer()
@@ -491,18 +495,18 @@ while True:
                                         # printf ("DEBUG lld key: %s json: %s\n", key,
                                         #          ROWS_JSON)
                                         to_outfile(config, key, ROWS_JSON)
-                                        to_outfile(config, ME[0] + \
+                                        to_outfile(config, ME + \
                                                "[query," + section + "," + \
                                           key + ",status]", 0)
                                     else:
                                         if  rows and len(rows[0]) == 2:
                                             for row in rows:
                                                 to_outfile(config, row[0], row[1])
-                                            to_outfile(config, ME[0] +
+                                            to_outfile(config, ME +
                                                        "[query," + section + "," +
                                                        key + ",status]", 0)
                                         elif not rows:
-                                            to_outfile(config, ME[0] + "[query," +
+                                            to_outfile(config, ME + "[query," +
                                                        section + "," +
                                                        key + ",status]", 0)
                                         else:
@@ -510,15 +514,15 @@ while True:
                                                    'SQL format error: %s\n',
                                                    datetime.datetime.fromtimestamp(time.time()),
                                                    section, key, 2, "expect key,value pairs")
-                                            to_outfile(config, ME[0] +
+                                            to_outfile(config, ME +
                                                        "[query," + section + "," +
                                                        key + ",status]", 2)
                                     fetchela = timer() - startf
                                     ELAPSED = timer() - START
-                                    to_outfile(config, ME[0] + "[query," +
+                                    to_outfile(config, ME + "[query," +
                                                section + "," +
                                                key + ",ela]", ELAPSED)
-                                    to_outfile(config, ME[0] + "[query," +
+                                    to_outfile(config, ME + "[query," +
                                                section + "," +
                                                key + ",fetch]", fetchela)
                                 except dbdr.DatabaseError as dberr:
@@ -528,10 +532,10 @@ while True:
 
                                     ELAPSED = timer() - START
                                     QUERYERROR += 1
-                                    to_outfile(config, ME[0] + "[query," + \
+                                    to_outfile(config, ME + "[query," + \
                                            section + "," + \
                                         key + ",status]", ecode)
-                                    to_outfile(config, ME[0] + "[query," + \
+                                    to_outfile(config, ME + "[query," + \
                                            section + "," + \
                                         key + ",ela]", ELAPSED)
                                     printf('%s key=%s.%s ZBXDB-%s: Db execution error: %s\n', \
@@ -542,31 +546,31 @@ while True:
                                         raise
                                     if ARGS.verbosity:
                                         printf("%s %s rollback\n",
-                                               datetime.datetime.fromtimestamp(time.time()), ME[0])
+                                               datetime.datetime.fromtimestamp(time.time()), ME)
                                     conn.rollback()
                                     if ARGS.verbosity:
                                         printf("%s %s rolledback\n",
-                                               datetime.datetime.fromtimestamp(time.time()), ME[0])
+                                               datetime.datetime.fromtimestamp(time.time()), ME)
                         # end of a section ## time to run the checks again from this section
-                        to_outfile(config, ME[0] + "[query," + section + ",,ela]",
+                        to_outfile(config, ME + "[query," + section + ",,ela]",
                                    timer() - SectionTimer)
             # release locks that might have been taken
             if ARGS.verbosity:
                 printf("%s %s rollback\n",
-                       datetime.datetime.fromtimestamp(time.time()), ME[0])
+                       datetime.datetime.fromtimestamp(time.time()), ME)
 
             conn.rollback()
             if ARGS.verbosity:
                 printf("%s %s rolledback\n",
-                       datetime.datetime.fromtimestamp(time.time()), ME[0])
+                       datetime.datetime.fromtimestamp(time.time()), ME)
             # dump metric for summed elapsed time of this run
-            to_outfile(config, ME[0] + "[query,,,ela]",
+            to_outfile(config, ME + "[query,,,ela]",
                        timer() - RUNTIMER)
-            to_outfile(config, ME[0] + "[cpu,user]",
+            to_outfile(config, ME + "[cpu,user]",
                        resource.getrusage(resource.RUSAGE_SELF).ru_utime)
-            to_outfile(config, ME[0] + "[cpu,sys]",
+            to_outfile(config, ME + "[cpu,sys]",
                        resource.getrusage(resource.RUSAGE_SELF).ru_stime)
-            to_outfile(config, ME[0] + "[mem,maxrss]",
+            to_outfile(config, ME + "[mem,maxrss]",
                        resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
             # passed all sections
             if ((NOWRUN - STARTTIME) % 3600) == 0:
@@ -590,7 +594,7 @@ while True:
     except dbdr.DatabaseError as dberr:
         ecode, emsg = dbe.db_errorcode(dbdr, dberr)
         ELAPSED = timer() - START
-        to_outfile(config, ME[0] + "[connect,status]", ecode)
+        to_outfile(config, ME + "[connect,status]", ecode)
         if not dbe.db_error_needs_new_session(dbdr, ecode):
             # from a killed session, crashed instance or similar
             CONNECTERROR += 1
