@@ -31,11 +31,29 @@ list_listener()
         sed "s/^/${SITE}_/"
       fi
 }
+if [ $# -lt 1 ]
+then
+  echo $ME zabbix_hostname >&2
+  exit 1
+fi
 
+TS=`date +%s`
+zabbix_host=$1
+if [ $# -eq 2 ]
+then
+  zabbix_server=$2
+fi
 cat $HOME/etc/$ME.cfg|grep -v " *#"|while read group cluster nodes
 do
   echo nodes $nodes >&2
   list_listener "$group" "$cluster" "$nodes"
-done | awk 'BEGIN { printf ("{ \"data\":[\n"); comma=" "  }
-          { printf ("%s\"{#DB_NAME}\":\"%s\"\n", comma, $0); comma="," }
-         END {printf ("]}\n") }'
+done | awk -v host=$zabbix_host -v ts=$TS 'BEGIN { printf ("%s oradb.lld %s { \"data\":[\n", host, ts); comma=" "  }
+          { printf ("%s{\"{#DB_NAME}\":\"%s\"}\n", comma, $0); comma="," }
+         END {printf ("]}\n") }' |
+         tee $ME.tmp |
+     tr -d "\n" | if [ -n "$zabbix_server" ]
+   then
+     zabbix_sender  -z $zabbix_server -T -i -
+   else
+     cat
+   fi
