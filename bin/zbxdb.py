@@ -146,6 +146,10 @@ def cancel_sql(c, s, k):
        datetime.datetime.fromtimestamp(time.time()), ME, s, k)
 
 ME = os.path.splitext(os.path.basename(__file__))[0]
+if (int(platform.python_version().split('.')[0]) < 3):
+    printf("%s needs at least python version 3, currently %s",ME, platform.python_version())
+    sys.exit(1)
+    
 STARTTIME = int(time.time())
 PARSER = ArgumentParser()
 PARSER.add_argument("-c", "--cfile", dest="configfile", default=ME+".cfg",
