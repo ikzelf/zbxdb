@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ME=${0##*/}
-ME_FILE=`type $ME|sed "s/[()]//g"|awk '{print $NF}'`
+ME_FILE=`type $0|sed "s/[()]//g"|awk '{print $NF}'`
 ME_DIR=`dirname $ME_FILE`
 list_listener()
 {
