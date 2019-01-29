@@ -31,7 +31,7 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "0.77"
+VERSION = "0.78"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -46,7 +46,14 @@ def to_outfile(c, ikey, values):
             c['OUTF'] = open(c['out_file'], "a")
     else:
         c['OUTF'] = open(c['out_file'], "w")
-    c['OUTF'].write(c['hostname'] + " " + ikey + " " + str(timestamp) + " " + str(values)+ "\n")
+    try:
+        c['OUTF'].write(c['hostname'] + " " + ikey + " " + str(timestamp) + " " + str(values)+ "\n")
+    except TypeError:
+        printf("%s %s TypeError in sql %s from section %\n",
+               datetime.datetime.fromtimestamp(time.time()), c['ME'],
+               c['key'], c['secion']
+              )
+        sys.stdout.flush()
     c['OUTF'].flush()
 
 class MyConfigParser(configparser.RawConfigParser):
@@ -69,6 +76,7 @@ def get_config(filename, me):
               'username': "scott", 'password': "tiger", 'role': "normal", 'omode': 0,
               'out_dir': "", 'out_file': "", 'hostname': "", 'checkfile_prefix': "",
               'site_checks': "", 'password_enc': "", 'OUTF': 0, 'ME': me,
+              'section': "", 'key': "",
               'sqltimeout': 0.0}
     CONFIG = MyConfigParser()
     if not os.path.exists(filename):
@@ -500,6 +508,8 @@ while True:
                                           key + ",status]", 0)
                                     else:
                                         if  rows and len(rows[0]) == 2:
+                                            config['section'] = section
+                                            config['key'] = key
                                             for row in rows:
                                                 to_outfile(config, row[0], row[1])
                                             to_outfile(config, ME +
