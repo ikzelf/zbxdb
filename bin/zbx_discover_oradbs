@@ -31,9 +31,12 @@ list_listener()
         sed "s/^/${SITE}_/"
       fi
 }
+# main
 if [ $# -lt 1 ]
 then
-  echo $ME zabbix_hostname >&2
+  echo "$ME zabbix_hostname [zabbix_server]">&2
+  echo " if zabbix_server specified, data is sent to zabbix_server" >&2
+  echo "    otherwise to stdout"
   exit 1
 fi
 
