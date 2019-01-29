@@ -527,6 +527,8 @@ while True:
                                             to_outfile(config, ME +
                                                        "[query," + section + "," +
                                                        key + ",status]", 2)
+                                    config['section'] = ""
+                                    config['key'] = ""
                                     fetchela = timer() - startf
                                     ELAPSED = timer() - START
                                     to_outfile(config, ME + "[query," +
