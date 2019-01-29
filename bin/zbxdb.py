@@ -51,7 +51,7 @@ def to_outfile(c, ikey, values):
     except TypeError:
         printf("%s %s TypeError in sql %s from section %\n",
                datetime.datetime.fromtimestamp(time.time()), c['ME'],
-               c['key'], c['secion']
+               c['key'], c['section']
               )
         sys.stdout.flush()
     c['OUTF'].flush()
