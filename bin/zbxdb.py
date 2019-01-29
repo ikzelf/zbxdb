@@ -49,7 +49,7 @@ def to_outfile(c, ikey, values):
     try:
         c['OUTF'].write(c['hostname'] + " " + ikey + " " + str(timestamp) + " " + str(values)+ "\n")
     except TypeError:
-        printf("%s %s TypeError in sql %s from section %\n",
+        printf("%s %s TypeError in sql %s from section %s\n",
                datetime.datetime.fromtimestamp(time.time()), c['ME'],
                c['key'], c['section']
               )
