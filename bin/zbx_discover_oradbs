@@ -12,9 +12,9 @@ list_listener()
 		for node in $NODES
 		do
 			echo node $node >&2
-      echo "scp -p ${ME_FILE}_remote ${node}:/tmp/"
-      scp -p ${ME_FILE}_remote ${node}:/tmp/
-			< /dev/null ssh -tt $node /tmp/${ME}_remote 
+      echo "scp -p ${ME_FILE}_remote ${node}:/tmp/${ME}_remote_${USER}"
+      scp -p ${ME_FILE}_remote ${node}:/tmp/${ME}_remote_${USER}
+			< /dev/null ssh -tt $node /tmp/${ME}_remote_${USER}  2>/dev/null
 		done
 	} |grep Instance|awk '{print $2}'|cut -f2 -d\"|
       if [ -n "${CLUSTER}" ]
