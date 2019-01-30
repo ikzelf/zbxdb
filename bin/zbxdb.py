@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
- free clonable from https://github.com/ikzelf/zbxora/
+ free clonable from https://github.com/ikzelf/zbxdb/
  (@) ronald.rood@ciber.nl follow @ik_zelf on twitter
  follow @zbxdb on twitter
  push your added items/checks using git
@@ -31,7 +31,7 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "0.78"
+VERSION = "0.79"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -54,6 +54,8 @@ def to_outfile(c, ikey, values):
                c['key'], c['section']
               )
         sys.stdout.flush()
+        c['OUTF'].write(c['hostname'] + " query[" + c['section']+","+c['key']+ ",status] " + 
+                        str(timestamp) + " " + "TypeError" + "\n")
     c['OUTF'].flush()
 
 class MyConfigParser(configparser.RawConfigParser):
