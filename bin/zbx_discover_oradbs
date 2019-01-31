@@ -26,9 +26,9 @@ list_listener()
       sed "s/[+-]//"|sort|uniq|
       if [ -n "${CLUSTER}" ]
       then
-        sed "s/^/${SITE}_${CLUSTER}_/"
+        sed "s/^/${SITE}_${CLUSTER}_/"|sed "s/$/ ${SITE}_${CLUSTER}/"
       else
-        sed "s/^/${SITE}_/"
+        sed "s/^/${SITE}_/"|sed "s/$/ ${SITE}/"
       fi
 }
 # main
@@ -51,7 +51,7 @@ do
   echo nodes $nodes >&2
   list_listener "$group" "$cluster" "$nodes"
 done | awk -v host=$zabbix_host -v ts=$TS 'BEGIN { printf ("%s oradb.lld %s { \"data\":[\n", host, ts); comma=" "  }
-          { printf ("%s{\"{#DB_NAME}\":\"%s\"}\n", comma, $0); comma="," }
+          { printf ("%s{\"{#DB_NAME}\":\"%s\",\"{#GROUP}\":\"%s\"}\n", comma, $1, $2); comma="," }
          END {printf ("]}\n") }' |
          tee $ME.tmp |
      tr -d "\n" | if [ -n "$zabbix_server" ]
