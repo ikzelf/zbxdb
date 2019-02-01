@@ -31,7 +31,7 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "0.79"
+VERSION = "1.00"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
