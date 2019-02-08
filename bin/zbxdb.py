@@ -18,6 +18,7 @@ import json
 import base64
 import collections
 import datetime
+import socket
 import time
 import sys
 import os
@@ -31,7 +32,7 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "1.01"
+VERSION = "1.02"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -539,7 +540,7 @@ while True:
                                     to_outfile(config, ME + "[query," +
                                                section + "," +
                                                key + ",fetch]", fetchela)
-                                except dbdr.DatabaseError as dberr:
+                                except (dbdr.DatabaseError, socket.timeout) as dberr:
                                     if conn_has_cancel:
                                         sqltimeout.cancel()
                                     ecode, emsg = dbe.db_errorcode(dbdr, dberr)
@@ -605,7 +606,7 @@ while True:
             time.sleep(SLEEPTIME)
             CONMINS = CONMINS + 1 # not really mins since the checks could
             #                       have taken longer than 1 minute to complete
-    except dbdr.DatabaseError as dberr:
+    except (dbdr.DatabaseError, socket.timeout) as dberr:
         ecode, emsg = dbe.db_errorcode(dbdr, dberr)
         ELAPSED = timer() - START
         to_outfile(config, ME + "[connect,status]", ecode)
