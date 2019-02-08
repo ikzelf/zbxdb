@@ -189,7 +189,7 @@ You have to make sure that your driver is installed on your system.
 
 # Warning:
 Use the code at your own risk. It is tested and seems to be functional. Use an account with the
-least required privileges, both on OS as on database leven.
+least required privileges, both on OS as on database level. Especially Oracle has good options to limit the required privileges. On others you still might need special privileges to access the system's tables/views.
 
 **Don't use a dba type account for this. Read only access is good enough**
 
