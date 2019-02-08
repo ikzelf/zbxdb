@@ -31,7 +31,7 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "1.00"
+VERSION = "1.01"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -559,21 +559,21 @@ while True:
                                                                       ecode):
                                         raise
                                     if ARGS.verbosity:
-                                        printf("%s %s rollback\n",
+                                        printf("%s %s commit\n",
                                                datetime.datetime.fromtimestamp(time.time()), ME)
-                                    conn.rollback()
+                                    conn.commit()
                                     if ARGS.verbosity:
-                                        printf("%s %s rolledback\n",
+                                        printf("%s %s committed\n",
                                                datetime.datetime.fromtimestamp(time.time()), ME)
                         # end of a section ## time to run the checks again from this section
                         to_outfile(config, ME + "[query," + section + ",,ela]",
                                    timer() - SectionTimer)
             # release locks that might have been taken
             if ARGS.verbosity:
-                printf("%s %s rollback\n",
+                printf("%s %s commit\n",
                        datetime.datetime.fromtimestamp(time.time()), ME)
 
-            conn.rollback()
+            conn.commit()
             if ARGS.verbosity:
                 printf("%s %s rolledback\n",
                        datetime.datetime.fromtimestamp(time.time()), ME)
