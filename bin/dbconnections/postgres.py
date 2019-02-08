@@ -32,4 +32,6 @@ def connect_string(config):
     return "postgresql://" + config['username'] + ":" + config['password'] + "@" + \
                        config['db_url']
 def connect(db, c):
-    return db.connect(connect_string(c))
+    c = db.connect(connect_string(c))
+    c.set_session(readonly=True)
+    return c
