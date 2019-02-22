@@ -32,7 +32,7 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "1.02"
+VERSION = "1.03"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -58,6 +58,9 @@ def to_outfile(c, ikey, values):
         c['OUTF'].write(c['hostname'] + " query[" + c['section']+","+c['key']+ ",status] " + 
                         str(timestamp) + " " + "TypeError" + "\n")
     c['OUTF'].flush()
+
+class zbx_exception(Exception):
+    pass
 
 class MyConfigParser(configparser.RawConfigParser):
     """strip comments"""
@@ -155,6 +158,7 @@ def cancel_sql(c, s, k):
     c.cancel()
     printf("%s %s canceled   %s %s\n",
        datetime.datetime.fromtimestamp(time.time()), ME, s, k)
+    raise zbx_exception("sql_timeout")
 
 ME = os.path.splitext(os.path.basename(__file__))[0]
 if (int(platform.python_version().split('.')[0]) < 3):
@@ -540,7 +544,7 @@ while True:
                                     to_outfile(config, ME + "[query," +
                                                section + "," +
                                                key + ",fetch]", fetchela)
-                                except (dbdr.DatabaseError, socket.timeout) as dberr:
+                                except (dbdr.DatabaseError, zbx_exception) as dberr:
                                     if conn_has_cancel:
                                         sqltimeout.cancel()
                                     ecode, emsg = dbe.db_errorcode(dbdr, dberr)
@@ -606,7 +610,7 @@ while True:
             time.sleep(SLEEPTIME)
             CONMINS = CONMINS + 1 # not really mins since the checks could
             #                       have taken longer than 1 minute to complete
-    except (dbdr.DatabaseError, socket.timeout) as dberr:
+    except (dbdr.DatabaseError, socket.timeout, ConnectionResetError) as dberr:
         ecode, emsg = dbe.db_errorcode(dbdr, dberr)
         ELAPSED = timer() - START
         to_outfile(config, ME + "[connect,status]", ecode)
