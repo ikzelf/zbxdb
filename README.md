@@ -262,13 +262,13 @@ least required privileges, both on OS as on database level. Especially Oracle ha
 **Don't use a root account for this. Any OS user will do, if it can use zabbix-sender**
 Using high privileged accounts is not needed.
 
-#database user creation:
-##Oracle non multitenant
+# database user creation:
+## Oracle non multitenant
 ```
 create user cistats identified by knowoneknows;
 grant create session, select any dictionary, oem_monitor to cistats;
 ```
-##Oracle multitenant
+## Oracle multitenant
 In Oracle 12 - when using pluggable database:
 ```
 create user c##cistats identified by knowoneknows;
