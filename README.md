@@ -15,6 +15,15 @@ Tested with
 - Oracle plugin databases
 - postgres 9
 - mssql 11 (2012)
+- mssql 13 (2018)
+- mysql 5
+- mysql 8
+- cockraochDB 2
+
+zbxdb is very cluster aware and will monitor the full cluster using a single connection to a single instance and monitor all databases served by that instance.
+
+Create a separate host for every Oracle database in zabbix.
+Create a separate host for every mssql instance in zabbix.
 
 Adding more db support
 ----------------------
@@ -44,13 +53,22 @@ template for database config file: (copy to zbxdb.{configname}.cfg)
 - `etc/zbxdb_config_template.cfg`
 
 default checks files:
+
+- `etc/checks/cockroach/primary.2.cfg`
 - `etc/checks/mssql/primary.11.cfg`
+- `etc/checks/mssql/primary.13.cfg`
 - `etc/checks/oracle/asm.11.cfg`
+- `etc/checks/oracle/asm.12.cfg`
 - `etc/checks/oracle/primary.11.cfg`
 - `etc/checks/oracle/primary.12.cfg`
 - `etc/checks/oracle/standby.11.cfg`
+- `etc/checks/oracle/standby.12.cfg`
 - `etc/checks/postgres/primary.9.cfg`
 - `etc/checks/postgres/slave.9.cfg`
+- `etc/checks/mysql/primary.5.cfg`
+- `etc/checks/mysql/primary.8.cfg`
+
+Do you find a version of a database that is not -yet- in the list, start with a copy of the highest previous version and include the version number in the name as above.
 
 site checks files - examples:
 - `etc/checks/oracle/ebs.cfg`
@@ -244,12 +262,13 @@ least required privileges, both on OS as on database level. Especially Oracle ha
 **Don't use a root account for this. Any OS user will do, if it can use zabbix-sender**
 Using high privileged accounts is not needed.
 
-database user creation:
+#database user creation:
+##Oracle non multitenant
 ```
 create user cistats identified by knowoneknows;
 grant create session, select any dictionary, oem_monitor to cistats;
 ```
-
+##Oracle multitenant
 In Oracle 12 - when using pluggable database:
 ```
 create user c##cistats identified by knowoneknows;
