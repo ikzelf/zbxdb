@@ -269,7 +269,7 @@ create user cistats identified by knowoneknows;
 grant create session, select any dictionary, oem_monitor to cistats;
 ```
 ## Oracle multitenant
-In Oracle 12 - when using pluggable database:
+In Oracle 12 - when using pluggable database, in the root container, create a common user:
 ```
 create user c##cistats identified by knowoneknows;
 alter user c##cistats set container_data all container = current;
