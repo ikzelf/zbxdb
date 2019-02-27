@@ -363,6 +363,7 @@ while True:
                 to_outfile(config, ME + "[config,instance_type]", config['instance_type'])
                 to_outfile(config, ME + "[conn,db_role]", connect_info['db_role'])
                 to_outfile(config, ME + "[conn,instance_type]", connect_info['instance_type'])
+                to_outfile(config, ME + "[conn,instance_name]", connect_info['iname'])
                 to_outfile(config, ME + "[conn,dbversion]", connect_info['dbversion'])
                 OBJECTS_LIST = []
                 SECTIONS_LIST = []
