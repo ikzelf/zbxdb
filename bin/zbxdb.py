@@ -32,7 +32,7 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "1.03"
+VERSION = "1.04"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -360,14 +360,11 @@ while True:
                 to_outfile(config, ME + "[version]", VERSION)
                 to_outfile(config, ME + "[config,db_type]", config['db_type'])
                 to_outfile(config, ME + "[config,db_driver]", config['db_driver'])
-                to_outfile(config, ME + "[config,instance_type]",
-                           config['instance_type'])
-                to_outfile(config, ME + "[conn,db_role]",
-                           connect_info['db_role'])
-                to_outfile(config, ME + "[conn,instance_type]",
-                           connect_info['instance_type'])
-                to_outfile(config, ME + "[conn,dbversion]",
-                           connect_info['dbversion'])
+                to_outfile(config, ME + "[config,instance_type]", config['instance_type'])
+                to_outfile(config, ME + "[conn,db_role]", connect_info['db_role'])
+                to_outfile(config, ME + "[conn,instance_type]", connect_info['instance_type'])
+                to_outfile(config, ME + "[config,instance_name]", connect_info['iname'])
+                to_outfile(config, ME + "[conn,dbversion]", connect_info['dbversion'])
                 OBJECTS_LIST = []
                 SECTIONS_LIST = []
                 FILES_LIST = []
