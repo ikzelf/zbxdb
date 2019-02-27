@@ -187,6 +187,54 @@ Others are in the pipeline, like:
 Just try your database and see what happens.
 You have to make sure that your driver is installed on your system.
 
+# auto database discovery for Oracle
+prepare a host with a discovery rule 'oradb.lld' of type zabbix_trapper.
+Give the discovery rule a host prototye "{#DB_NAME}" and add it to groups you need, but also to group prototypes "{#GROUP}" and "{#ALERT}".
+The alert group is optional but is meant to be for ... alerting.
+Add the zbxdb template to the host prototype.
+Set the inventory to automatic.
+
+zbx_discover_oradbs is the -bash- script that does the discovery. It needs host equivalence for all machines that you want to be discovered. zbx_discover_oradbs visits all hosts and uses lsnrctl to find all instances. It uses the common conventions regarding instance and database naming.  It works for single database and for RAC databases.
+
+the configuration file:
+```
+## site_prefix (clustername|"") host[s]
+prefix cluster01 clu01node01 clu01node02
+prefix cluster02 clu02node01 clu02node02
+prefix "" singlehost1
+## for alerting based on a group:
+alert_pattern=(cluster01_|PB$)
+#pattern matches hostnames that contain cluster01_ or end on PB
+alert_group=your_generated_alert_group
+```
+
+the usage:
+zbx_discover_oradb hostname_with_the_oradb.lld_key [zabbix_(server|proxy)]
+
+Since zbxdb template contains a nodata trigger for every database, expect that after a few minutes a missing data alert is raised, if you did not also start zbxdb.py for the newly discovered database[s].
+
+a file is created that contains the discovery json array that is sent to zabbix.
+a file is created in the /tmp/ directory of every  host that is visited for the discovery. It is the remote discovery script.
+
+sample output file:
+```
+testhost oradb.lld 1548959488 rotra_srv-yum-001 oradb.lld 1551257701 { "data":[
+ {"{#DB_NAME}":"prefix_cluster01_CTEST1P","{#GROUP}":"prefix_cluster01","{#ALERT}":"your_generated_alert_group"}
+,{"{#DB_NAME}":"prefix_cluster01_DBFS1P","{#GROUP}":"prefix_cluster01","{#ALERT}":"your_generated_alert_group"}
+,{"{#DB_NAME}":"prefix_cluster01_RONR","{#GROUP}":"prefix_cluster01","{#ALERT}":"your_generated_alert_group"}
+,{"{#DB_NAME}":"prefix_cluster01_TRANS","{#GROUP}":"prefix_cluster01","{#ALERT}":"your_generated_alert_group"}
+,{"{#DB_NAME}":"prefix_cluster02_CTEST1PB","{#GROUP}":"prefix_cluster02","{#ALERT}":"your_generated_alert_group"}
+,{"{#DB_NAME}":"prefix_cluster02_CTEST2A","{#GROUP}":"prefix_cluster02"}
+,{"{#DB_NAME}":"prefix_cluster02_PTVLO","{#GROUP}":"prefix_cluster02"}
+,{"{#DB_NAME}":"prefix_cluster02_TRANS","{#GROUP}":"rprefix_cluster02"}
+,{"{#DB_NAME}":"prefix_CC12","{#GROUP}":"prefix"}
+]}
+```
+Just in case you already have added lot's of databases manually, you can put them in an ignore list so you won't get lot's of errors during the processing of the discovery data in zabbix.
+Just put the generated hostnames that you want to ignore in $HOME/etc/zbx_discover_oradbs.ignore, next to the cfg file.
+
+zabbix is not very flexible regarding group prototypes. The group names that are generated are not allowed to pre-exist (v4) Sorry for that, we have to deal with that.
+
 # Warning:
 Use the code at your own risk. It is tested and seems to be functional. Use an account with the
 least required privileges, both on OS as on database level. Especially Oracle has good options to limit the required privileges. On others you still might need special privileges to access the system's tables/views.
