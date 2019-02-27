@@ -13,7 +13,10 @@ def connection_info(conn):
     C.execute("select pg_backend_pid()")
     DATA = C.fetchone()
     conn_info['sid'] = DATA[0]
-    C.execute("SELECT current_database()")
+    C.execute("""select inet_server_addr()||':'||p.setting||':'|| d.setting
+          from pg_settings p, pg_settings d
+          where p.name = 'port'
+          and   d.name = 'data_directory'""")
     DATA = C.fetchone()
     conn_info['iname'] = DATA[0]
     C.execute("SELECT current_user")
