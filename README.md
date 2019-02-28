@@ -8,25 +8,25 @@ Using zabbix_sender to upload data from crontab
 By popular demand: password fields are encrypted to password_enc fields during startup when a password
 value is detected.
 
-Tested with 
+Tested with
+
 - Oracle 11,12 RAC and single instance databases
 - Oracle primary and standby databases
 - Oracle asm instances
-- Oracle plugin databases
+- Oracle plugin/multitenant databases
 - postgres 9
-- mssql 11 (2012)
-- mssql 13 (2018)
+- SQL Server 2012(11)
+- SQL Server 2016(13)
 - mysql 5
 - mysql 8
-- cockraochDB 2
+- cockroachDB 2
 
 zbxdb is very cluster aware and will monitor the full cluster using a single connection to a single instance and monitor all databases served by that instance.
 
 Create a separate host for every Oracle database in zabbix.
 Create a separate host for every mssql instance in zabbix.
 
-Adding more db support
-----------------------
+# Adding more db support
 Very simple: give the dbtype a name and select a driver name for it. Ad the {dbtype}.py to the
 dbconnections/ module that should handle the database connection. Add the {driver}.py to the
 drivererrors/ module  that should handle exceptions and give a uniform format to zbxdb.py.
@@ -46,116 +46,71 @@ sample config:
 - `bin/zbxdb_sender`
 - `bin/zbxdb_starter`
 
-database config files:
-- `etc/zbxdb.fsdb02.cfg`
+# database config files examples
 
-template for database config file: (copy to zbxdb.{configname}.cfg)
-- `etc/zbxdb_config_template.cfg`
-
-default checks files:
-
-- `etc/checks/cockroach/primary.2.cfg`
-- `etc/checks/mssql/primary.11.cfg`
-- `etc/checks/mssql/primary.13.cfg`
-- `etc/checks/oracle/asm.11.cfg`
-- `etc/checks/oracle/asm.12.cfg`
-- `etc/checks/oracle/primary.11.cfg`
-- `etc/checks/oracle/primary.12.cfg`
-- `etc/checks/oracle/standby.11.cfg`
-- `etc/checks/oracle/standby.12.cfg`
-- `etc/checks/postgres/primary.9.cfg`
-- `etc/checks/postgres/slave.9.cfg`
-- `etc/checks/mysql/primary.5.cfg`
-- `etc/checks/mysql/primary.8.cfg`
-
-Do you find a version of a database that is not -yet- in the list, start with a copy of the highest previous version and include the version number in the name as above.
-
-site checks files - examples:
-- `etc/checks/oracle/ebs.cfg`
-- `etc/checks/oracle/sap.cfg`
+- [cockroachDB](etc/zbxdb.crdb.cfg)
+- [SQLServer](etc/zbxdb.ms.cfg)
+- [mysql](etc/zbxdb.mysql.cfg)
+- [Oracle](etc/zbxdb.odb.cfg)
+- [postgres](etc/zbxdb.pgdb.cfg)
 
 
-mssql config file: zbxdb.mymssqldb.cfg
---------------------------------------
-```
-[zbxdb]
-db_url= //localhost:1466/master
-db_type= mssql
-db_driver= pytds
-username= cistats
-password= knowoneknows
-server= mysqlserverhost
-port=  1466
-instance_type= rdbms
-role= normal
-# for ASM instance role should be SYSDBA
-out_dir= $HOME/zbxdb_out
-hostname= testhost
-checks_dir= etc/zbxdb_checks
-site_checks= sap,ebs
-```
-oracle config file: zbxdb.odb.cfg
---------------------------------------
-```
-[zbxdb]
-db_url= //localhost:15214/fsdb02
-db_type= oracle
-db_driver= cx_Oracle
-username= cistats
-password= knowoneknows
-instance_type= rdbms
-role= normal
-# for ASM instance role should be SYSDBA
-out_dir= $HOME/zbxdb_out
-hostname= testhost
-checks_dir= etc/zbxdb_checks
-site_checks= sap,ebs
-```
+# default checks files
 
-postgres config file: zbxdb.pgdb.cfg
---------------------------------------
-```
-[zbxdb]
-db_url= localhost:5432
-username= cistats
-password= knowoneknows
-db_type= postgres
-db_driver= psycopg2 
-instance_type= rdbms
-role= normal
-out_dir= $HOME/zbxora_out
-hostname= testhost
-checks_dir= etc/zbxdb_checks
-site_checks= NONE
-```
+They consist of sections. Every section  has a parameter minutes that specifies after how many minutes the queries will have to be run again.
 
+section with 'discover' in their name have a special meaning, the return json arrays to zabbix for the low level discovery. The other sections just contain queries returning key/value pairs.
+
+- [cockroach v2](etc/zbxdb_checks/cockroach/primary.2.cfg)
+- [SQL Server 2012](etc/zbxdb_checks/mssql/primary.11.cfg)
+- [SQL Server 2016](etc/zbxdb_checks/mssql/primary.13.cfg)
+- [Oracle 11g ASM](etc/zbxdb_checks/oracle/asm.11.cfg)
+- [Oracle 12c ASM](etc/zbxdb_checks/oracle/asm.12.cfg)
+- [Oracle 11g](etc/zbxdb_checks/oracle/primary.11.cfg)
+- [Oracle 12c](etc/zbxdb_checks/oracle/primary.12.cfg)
+- [Oracle 11g standby](etc/zbxdb_checks/oracle/standby.11.cfg)
+- [Oracle 12c standby](etc/zbxdb_checks/oracle/standby.12.cfg)
+- [postgres v9](etc/zbxdb_checks/postgres/primary.9.cfg)
+- [postgres v9 slave](etc/zbxdb_checks/postgres/slave.9.cfg)
+- [mysql v5](etc/zbxdb_checks/mysql/primary.5.cfg)
+- [mysql v8](etc/zbxdb_checks/mysql/primary.8.cfg)
+
+Do you find a version of a database that is not -yet- in the list, start with a copy of the highest previous version and include the version number in the name as above. The checks really are nothing more that queries that return key/value  pairs to be sent to zabbix. You need to be sure that
+
+- your `db_driver` is listed in bin/drivererrors/
+- your `db_type` is listed in bin/dbconnections/
+- your `db_type` is listed as directory in `checks_dir`/
+- your `db_type` has a checks file for your version db in `checks_dir/primary.{version}.cfg`
+
+drivererrors and dbconnections are loaded dynamically, based on the `db_driver` and `db_type` parameters.
+
+# site checks files - examples
+
+- [Oracle ebs](etc/zbxdb_checks/oracle/ebs.cfg)
+- [SAP on Oracle](etc/zbxdb_checks/oracle/sap.cfg)
+
+# working of zbxdb.py
 Assuming bin/ is in PATH:
 When using this configfile ( zbxdb.py -c etc/zbxdb.odb.cfg )
 zbxdb.py will read the configfile
 and try to connect to the database using db_url
 If all parameters are correct zbxdb will keep looping forever.
-Using the site_checks as shown, zbxdb tries to find them in {checks_dir}/{db_type}/sap.cfs
-and in {checks_dir}/{db_type}/ebs.cfg (just specify a comma separated list for this)
+Using the site_checks as shown, zbxdb tries to find them in `checks_dir`/`db_type`/sap.cfg
+and in `checks_dir`/`db_type`/ebs.cfg (just specify a comma separated list for this)
 Outputfile containing the metrics is created in out_dir/zbxdb.odb.zbx
 
-After having connected to the sepcified service, zbxdb finds out the instance_type and version,
+After having connected to the specified service, zbxdb finds out the instance_type and version,
 after which the database_role is determined, if applicable.
-Using these parameters the correct {zbxdb_dir}/{db_type}/X.Y.cfg file is chosen.
+Using these parameters the correct `checks_dir`/`db_type`/{role}.{version}.cfg file is chosen. For a regular database this translates to 'primary.{version}.cfg'
 
 After having read the checks_files, a lld array containing the queries is written before
 monitoring starts. When monitoring starts, first the *discovery* section is executed.
-This is to discover the instances, tablespaces, diskgroups, or whatever you want
-to monitor.
+This is to discover the instances, tablespaces, diskgroups, or whatever you want to monitor.
 
 zbxdb also keeps track of the used queries.
-zbxdb executes queries and expects them to return a valid zabbix_key and values.
-The zabbix_key that the queries return should be known in zabbix in your zabbix_host
-(or be discovered by a preceding lld query in a *discover* section)
+zbxdb executes queries and expects them to return a valid zabbix_key and values. The zabbix_key that the queries return should be known in zabbix in your zabbix_host (or be discovered by a preceding lld query in a *discover* section)
 
-If a database goes down, zbxdb will try to reconnect until killed.
-When a new connection is tried, zbxdb reads the config file, just in case
-there was a change.
-If a checks file in use is changed, zbxdb re-reads the file and logs about this.
+If a database goes down, zbxdb will try to reconnect until killed. When a new connection is tried, zbxdb reads the config file, just in case there was a change. If a checks file in use is changed, zbxdb re-reads the file and logs about this.
 
 zbxdb's time is mostly spent sleeping. It wakes-up every minute and checks if a
 section has to be executed or not. Every section contains a minutes:X parameter that 
@@ -167,43 +122,67 @@ minute, an interval is skipped.
 The idea for site_checks is to have application specific checks in them. The regular checks
 should be application independent and be generic for that type and version of database.
 For RAC databases, just connect using 1 instance
-For pluggable database, just connect to a global account to monitor all plugins
-
-# zbxdb_starter:
+For pluggable database, just connect to a common user to monitor all plugin databases.
+# Enclosed tools:
+## zbxdb_starter
 this is an aide to [re]start zbxdb in an orderly way. Put it in the crontab, every minute.
 It will check the etc directory (note the lack of a leading '/') and start the configuration
 files named etc/zbxdb.{your_config}.cfg, each given their own logfile. Notice the sleep in the start
 sequence. This is done to make sure not all concurrently running zbxdb sessions awake at
 the same moment. Now their awakenings is separated by a second. This makes that if running
 10 monitors, they are executing their checks one after an other.
-Schedule this in the crontab, every minute.
+**Schedule this in the crontab, every minute.**
 Make sure that ZBXDB_HOME is defined in your .bash_profile and also add the location of zbxdb.py to
 your PATH. In my case: PATH=$HOME/zbxdb/bin:$PATH
+## zbxdb_stop
+Just to stop all currently running zbxdb.py scripts for the user.
 
-# zbxdb_sender:
+## zbxdb_sender
 this is used to really send the data to zabbix. Could be zabbix server, could be zabbix proxy, only
 depending on the location of your monitoring host. It collects the files from the out_dir and
 sends them in one session. Doing so makes the process pretty efficient, at the cost of a small delay.
-Schedule this in the crontab, every minute.
+**Schedule this in the crontab, every minute.**
 
 TODO: make zbxdb.py open a pipe to zabbix_sender and use that all the time instead of opening
 a new session every minute.
+## zbx_discover_oradbs
+bash script that performs the Oracle database discovery. Place in in the crontab, for a few times a day, or run in manually on moments that you know a new database has been created, or removed.
+## zbx_alertlog.sh
+A bash script that runs as an user command, by the agent, that connects to all instances on the host and discovers all log.xml files for alert monitoring
 
-# multi database support
-It looks like the various drivers have their own way of reporting errors in their exception handling.
-This makes it a bit hard to make the code generic because exactly the exception handling is one of the most important tasks of this
-application. Tested are:
-- Oracle with cx_Oracle
-- postgres with psycopg2
-- mssql with pytds
-- mysql with pymysql
-- cockroachDB with psycopg2
+# modules
+## drivererrors
+Drivererrors has 2 entries:
 
-Others are in the pipeline, like:
-- db2 with ibm_db_dbi
+- `db_errorcode(driver, excep)`
+- `db_error_needs_new_session(driver, code)`
 
-Just try your database and see what happens.
-You have to make sure that your driver is installed on your system.
+### `db_errorcode`
+returns the errorcode and text it got from excep.
+### `db_error_needs_new_session`
+returns True if with the given code it is useless to try to continue the current session. I oracle, for example 3113 is  a good reason to forget the session and to try to connect again. Every driver has
+## dbconnections
+dbconnections has 3 entries:
+
+- `connection_info(con)`
+- `connect_string(config)`
+- `connect(db, c)`
+
+### connection_info
+Has to fill info about the connected database like
+
+- dbversion
+- sid
+- serial
+- instance_type
+- iname
+- uname
+- db_role
+
+### connect_string
+returns the connect string needed to connect to the database.
+### connect
+performs the actual connect  to the database using  the configuration parameters.
 
 # auto database discovery for Oracle
 prepare a host with a discovery rule 'oradb.lld' of type zabbix_trapper.
@@ -255,21 +234,21 @@ zabbix is not very flexible regarding group prototypes. The group names that are
 
 # Warning:
 Use the code at your own risk. It is tested and seems to be functional. Use an account with the
-least required privileges, both on OS as on database level. Especially Oracle has good options to limit the required privileges. On others you still might need special privileges to access the system's tables/views.
+least required privileges, both on OS as on database level. Especially Oracle has good options to limit the required privileges. On others you still might need special privileges to access the system's tables/views.  Sadly enough, for some databases you still need a database super user type of account to be able to access the needed tables/views.
 
 **Don't use a dba type account for this. Read only access is good enough**
 
 **Don't use a root account for this. Any OS user will do, if it can use zabbix-sender**
-Using high privileged accounts is not needed.
+Using high privileged accounts is not needed in Oracle.
 
 # database user creation:
-## Oracle non multitenant
+## Oracle classic
 ```
 create user cistats identified by knowoneknows;
 grant create session, select any dictionary, oem_monitor to cistats;
 ```
 ## Oracle multitenant
-In Oracle 12 - when using pluggable database, in the root container, create a common user:
+In Oracle 12 or later - when using pluggable database, in the root container, create a common user:
 ```
 create user c##cistats identified by knowoneknows;
 alter user c##cistats set container_data all container = current;
