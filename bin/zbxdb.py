@@ -32,7 +32,7 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "1.04"
+VERSION = "1.05"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -255,8 +255,10 @@ while True:
     try:
         for i in range(0, 2):
             if CHECKFILES[i]['lmod'] != os.stat(CHECKFILES[i]['name']).st_mtime:
-                printf("%s %s changed, restarting ..\n",
-                       datetime.datetime.fromtimestamp(time.time()), CHECKFILES[i]['name'])
+                printf("%s %s Changed, from %s to %s restarting ..\n",
+                       datetime.datetime.fromtimestamp(time.time()), CHECKFILES[i]['name'],
+                       time.ctime(CHECKFILES[i]['lmod']),
+                       time.ctime(os.path.getmtime(CHECKFILES[i]['name'])))
                 os.execv(__file__, sys.argv)
 
         # reset list in case of a just new connection that reloads the config
@@ -340,9 +342,11 @@ while True:
                 # change the CHECKSCHANGED to catch that.
                 if CHECKFILES[i]['lmod'] != os.stat(CHECKFILES[i]['name']).st_mtime:
                     if i < 3: # this is the script or module itself that changed
-                        printf("%s %s changed, restarting ...\n",
+                        printf("%s %s changed, from %s to %s restarting ...\n",
                                datetime.datetime.fromtimestamp(time.time()),
-                               CHECKFILES[i]['name'])
+                               CHECKFILES[i]['name'],
+                               time.ctime(CHECKFILES[i]['lmod']),
+                               time.ctime(os.path.getmtime(CHECKFILES[i]['name'])))
                         os.execv(__file__, sys.argv)
                     else:
                         if CHECKFILES[i]['lmod'] == 0:
@@ -363,8 +367,8 @@ while True:
                 to_outfile(config, ME + "[config,instance_type]", config['instance_type'])
                 to_outfile(config, ME + "[conn,db_role]", connect_info['db_role'])
                 to_outfile(config, ME + "[conn,instance_type]", connect_info['instance_type'])
-                to_outfile(config, ME + "[conn,instance_name]", connect_info['iname'])
                 to_outfile(config, ME + "[conn,dbversion]", connect_info['dbversion'])
+                to_outfile(config, ME + "[connect,instance_name]", connect_info['iname'])
                 OBJECTS_LIST = []
                 SECTIONS_LIST = []
                 FILES_LIST = []
