@@ -32,7 +32,7 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "1.05"
+VERSION = "1.10"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -48,7 +48,7 @@ def to_outfile(c, ikey, values):
     else:
         c['OUTF'] = open(c['out_file'], "w")
     try:
-        c['OUTF'].write(c['hostname'] + " " + ikey + " " + str(timestamp) + " " + str(values)+ "\n")
+        c['OUTF'].write(c['hostname'] + ' "' + ikey + '" ' + str(timestamp) + ' ' + str(values)+ '\n')
     except TypeError:
         printf("%s %s TypeError in sql %s from section %s\n",
                datetime.datetime.fromtimestamp(time.time()), c['ME'],
