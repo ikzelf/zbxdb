@@ -233,10 +233,13 @@ if ARGS.verbosity:
     printf("%s %s connect string: %s\n",
            datetime.datetime.fromtimestamp(time.time()), ME, dbc.connect_string(config))
 
-CHECKFILES = [{'name': __file__, 'lmod': os.stat(__file__).st_mtime},
-              {'name': dbc.__file__, 'lmod': os.stat(dbc.__file__).st_mtime},
-              {'name': dbe.__file__, 'lmod': os.stat(dbe.__file__).st_mtime}
+CHECKFILES = [{'name': __file__, 'lmod': os.path.getmtime(__file__)},
+              {'name': dbc.__file__, 'lmod': os.path.getmtime(dbc.__file__)},
+              {'name': dbe.__file__, 'lmod': os.path.getmtime(dbe.__file__)}
              ]
+to_outfile(config, ME + "[checks,0,lmod]", int(CHECKFILES[0]['lmod']))
+to_outfile(config, ME + "[checks,1,lmod]", int(CHECKFILES[1]['lmod']))
+to_outfile(config, ME + "[checks,2,lmod]", int(CHECKFILES[2]['lmod']))
 CHECKSCHANGED = [0]
 
 CONNECTCOUNTER = 0
@@ -340,13 +343,14 @@ while True:
             for i in range(len(CHECKFILES)): # at index 0 is the script itself
                 # if CHECKSFILE became inaccessible in run -> crash and no output :-(
                 # change the CHECKSCHANGED to catch that.
-                if CHECKFILES[i]['lmod'] != os.stat(CHECKFILES[i]['name']).st_mtime:
+                current_lmod = os.path.getmtime(CHECKFILES[i]['name'])
+                if CHECKFILES[i]['lmod'] != current_lmod:
                     if i < 3: # this is the script or module itself that changed
                         printf("%s %s changed, from %s to %s restarting ...\n",
                                datetime.datetime.fromtimestamp(time.time()),
                                CHECKFILES[i]['name'],
                                time.ctime(CHECKFILES[i]['lmod']),
-                               time.ctime(os.path.getmtime(CHECKFILES[i]['name'])))
+                               time.ctime(current_lmod))
                         os.execv(__file__, sys.argv)
                     else:
                         if CHECKFILES[i]['lmod'] == 0:
