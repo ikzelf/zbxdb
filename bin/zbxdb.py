@@ -32,7 +32,7 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "1.10"
+VERSION = "1.12"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -50,11 +50,12 @@ def to_outfile(c, ikey, values):
     try:
         c['OUTF'].write(c['hostname'] + ' "' + ikey + '" ' + str(timestamp) + ' ' + str(values)+ '\n')
     except TypeError:
-        printf("%s %s TypeError in sql %s from section %s\n",
-               datetime.datetime.fromtimestamp(time.time()), c['ME'],
-               c['key'], c['section']
-              )
-        sys.stdout.flush()
+        if ARGS.verbosity:
+            printf("%s %s TypeError in sql %s from section %s\n",
+                   datetime.datetime.fromtimestamp(time.time()), c['ME'],
+                   c['key'], c['section']
+                  )
+            sys.stdout.flush()
         c['OUTF'].write(c['hostname'] + " query[" + c['section']+","+c['key']+ ",status] " + 
                         str(timestamp) + " " + "TypeError" + "\n")
     c['OUTF'].flush()
@@ -265,9 +266,9 @@ while True:
                 os.execv(__file__, sys.argv)
 
         # reset list in case of a just new connection that reloads the config
-        CHECKFILES = [{'name': __file__, 'lmod': os.stat(__file__).st_mtime},
-                      {'name': dbc.__file__, 'lmod': os.stat(dbc.__file__).st_mtime},
-                      {'name': dbe.__file__, 'lmod': os.stat(dbe.__file__).st_mtime}
+        CHECKFILES = [{'name': __file__, 'lmod': os.path.getmtime(__file__)},
+                      {'name': dbc.__file__, 'lmod': os.path.getmtime(dbc.__file__)},
+                      {'name': dbe.__file__, 'lmod': os.path.getmtime(dbe.__file__)}
                      ]
         config = get_config(ARGS.configfile, ME)
         config['password'] = decrypted(config['password_enc'])
@@ -342,8 +343,16 @@ while True:
             NEEDTOLOAD = "no"
             for i in range(len(CHECKFILES)): # at index 0 is the script itself
                 # if CHECKSFILE became inaccessible in run -> crash and no output :-(
-                # change the CHECKSCHANGED to catch that.
-                current_lmod = os.path.getmtime(CHECKFILES[i]['name'])
+                try:
+                    current_lmod = os.path.getmtime(CHECKFILES[i]['name'])
+                except OSError as e:
+                    printf("%s %s: %s\n",
+                           datetime.datetime.fromtimestamp(time.time()),
+                           CHECKFILES[i]['name'],
+                           e.strerror)
+                    # ignore the error, maybe temporary due to an update
+                    current_lmod = CHECKFILES[i]['lmod']
+
                 if CHECKFILES[i]['lmod'] != current_lmod:
                     if i < 3: # this is the script or module itself that changed
                         printf("%s %s changed, from %s to %s restarting ...\n",
@@ -373,6 +382,9 @@ while True:
                 to_outfile(config, ME + "[conn,instance_type]", connect_info['instance_type'])
                 to_outfile(config, ME + "[conn,dbversion]", connect_info['dbversion'])
                 to_outfile(config, ME + "[connect,instance_name]", connect_info['iname'])
+                # sometimes the instance_name query follows within a second
+                # missing event so give it some more time
+                time.sleep(3)
                 OBJECTS_LIST = []
                 SECTIONS_LIST = []
                 FILES_LIST = []
