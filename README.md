@@ -254,3 +254,22 @@ create user c##cistats identified by knowoneknows;
 alter user c##cistats set container_data all container = current;
 grant create session, select any dictionary, oem_monitor, dv_monitor to c##cistats;
 ```
+## SQLserver
+-- create login and user to monitor with low privs in all databases (including model)
+USE [master]
+GO
+CREATE LOGIN [CISTATS] WITH PASSWORD=N'knowoneknows', DEFAULT_DATABASE=[master], CHECK_EXPIRATION=OFF, CHECK_POLICY=OFF
+GO
+GRANT VIEW SERVER STATE TO [CISTATS]
+GO
+USE [msdb]
+GO
+EXEC master.dbo.sp_MsForEachDB 'USE [?]; CREATE USER [CISTATS] FOR LOGIN [CISTATS];'
+GO
+use msdb
+EXEC sp_addrolemember N'SQLAgentReaderRole', N'CISTATS';
+EXEC sp_addrolemember N'SQLAgentUserRole', N'CISTATS';
+GO
+GRANT SELECT on sysjobs to [CISTATS];
+GRANT SELECT on sysjobhistory to [CISTATS];
+grant select on sysjobactivity to [CISTATS];
