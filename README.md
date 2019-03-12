@@ -255,6 +255,7 @@ alter user c##cistats set container_data all container = current;
 grant create session, select any dictionary, oem_monitor, dv_monitor to c##cistats;
 ```
 ## SQLserver
+```
 -- create login and user to monitor with low privs in all databases (including model)
 USE [master]
 GO
@@ -273,3 +274,4 @@ GO
 GRANT SELECT on sysjobs to [CISTATS];
 GRANT SELECT on sysjobhistory to [CISTATS];
 grant select on sysjobactivity to [CISTATS];
+```
