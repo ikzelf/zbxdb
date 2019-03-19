@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
  free clonable from https://github.com/ikzelf/zbxdb/
  (@) ronald.rood@ciber.nl follow @ik_zelf on twitter
@@ -32,7 +32,7 @@ from timeit import default_timer as timer
 import platform
 import sqlparse
 # from pdb import set_trace
-VERSION = "1.12"
+VERSION = "1.13"
 
 def printf(format, *args):
     """just a simple c-style printf function"""
@@ -60,8 +60,8 @@ def to_outfile(c, ikey, values):
                         str(timestamp) + " " + "TypeError" + "\n")
     c['OUTF'].flush()
 
-class zbx_exception(Exception):
-    pass
+# class zbx_exception(Exception):
+    # pass
 
 class MyConfigParser(configparser.RawConfigParser):
     """strip comments"""
@@ -159,7 +159,7 @@ def cancel_sql(c, s, k):
     c.cancel()
     printf("%s %s canceled   %s %s\n",
        datetime.datetime.fromtimestamp(time.time()), ME, s, k)
-    raise zbx_exception("sql_timeout")
+    # raise zbx_exception("sql_timeout")
 
 ME = os.path.splitext(os.path.basename(__file__))[0]
 if (int(platform.python_version().split('.')[0]) < 3):
@@ -194,6 +194,15 @@ if config['password']:
     printf("%s first encrypted the plaintext password and removed from config\n", \
            datetime.datetime.fromtimestamp(STARTTIME)
           )
+
+printf('%s using sql_timeout %d\n',
+   datetime.datetime.fromtimestamp(time.time()), \
+   config['sqltimeout'])
+# add a few seconds extra to allow the driver timeout handling to do the it's job.
+# for example, cx_oracle has a cancel routine that we call after a timeout. If
+# there is a network problem, the cancel gets a ORA-12152: TNS:unable to send break message
+# setting this defaulttimeout should speed this up
+socket.setdefaulttimeout(config['sqltimeout']+3)
 
 printf("%s %s found db_type=%s, driver %s; checking for driver\n", \
        datetime.datetime.fromtimestamp(time.time()), ME, \
@@ -309,9 +318,6 @@ while True:
                                       connect_info['db_role'].lower() + "." + \
                                       connect_info['dbversion']+".cfg")
 
-        printf('%s using sql_timeout %d\n',
-               datetime.datetime.fromtimestamp(time.time()), \
-               config['sqltimeout'])
         FILES = [CHECKSFILE]
         CHECKFILES.append({'name': CHECKSFILE, 'lmod': 0})
         if config['site_checks']:
@@ -561,7 +567,7 @@ while True:
                                     to_outfile(config, ME + "[query," +
                                                section + "," +
                                                key + ",fetch]", fetchela)
-                                except (dbdr.DatabaseError, zbx_exception) as dberr:
+                                except (dbdr.DatabaseError) as dberr:  #, zbx_exception) as dberr:
                                     if conn_has_cancel:
                                         sqltimeout.cancel()
                                     ecode, emsg = dbe.db_errorcode(dbdr, dberr)
