@@ -277,11 +277,11 @@ grant select on sysjobactivity to [CISTATS];
 ```
 ## postgreSQL
 ```
+v9:
+create user cistats with superuser encrypted password 'knowoneknows';
+
+v10 and later:
 create user cistats with encrypted password 'knowoneknows';
 GRANT pg_read_all_settings TO cistats;
 GRANT pg_monitor to cistats;
-
-this assumes that  public has connect to all databases. If not, for every database:
-GRANT connect ON DATABASE database_name TO cistats;
-An other option is to give superuser to cistats.
 ```
