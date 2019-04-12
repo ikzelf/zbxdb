@@ -256,7 +256,7 @@ grant create session, select any dictionary, oem_monitor, dv_monitor to c##cista
 ```
 ## SQLserver
 ```
--- create login and user to monitor with low privs in all databases (including model)
+create login and user to monitor with low privs in all databases (including model)
 USE [master]
 GO
 CREATE LOGIN [CISTATS] WITH PASSWORD=N'knowoneknows', DEFAULT_DATABASE=[master], CHECK_EXPIRATION=OFF, CHECK_POLICY=OFF
@@ -274,4 +274,14 @@ GO
 GRANT SELECT on sysjobs to [CISTATS];
 GRANT SELECT on sysjobhistory to [CISTATS];
 grant select on sysjobactivity to [CISTATS];
+```
+## postgreSQL
+```
+create user cistats with encrypted password 'knowoneknows';
+GRANT pg_read_all_settings TO cistats;
+GRANT pg_monitor to cistats;
+
+this assumes that  public has connect to all databases. If not, for every database:
+GRANT connect ON DATABASE database_name TO cistats;
+An other option is to give superuser to cistats.
 ```
