@@ -15,6 +15,7 @@ Tested with
 - Oracle asm instances
 - Oracle plugin/multitenant databases
 - postgres 9
+- postgres 10
 - SQL Server 2012(11)
 - SQL Server 2016(13)
 - mysql 5
