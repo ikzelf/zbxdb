@@ -17,11 +17,11 @@ pip install <zbxdb/requirements.txt
 
 cp -rp zbxdb/etc $HOME/
 
-in your etc directories are some sample monitoring configs. The naming convention for the configs is
+in your etc directory are some sample monitoring configs. The naming convention for the configs is
 zbxdb.{hostname_in_zabbix}.cfg
 Replace the samples with your own configuration files.
 
-Add this entries into .bash_profile of the home directoy of the user that will run zbxdb:
+Add these entries into .bash_profile of the home directoy of the user that will run zbxdb:
   - export ZBXDB_HOME=$HOME
   - export ZBXDB_OUT=$ZBXDB_HOME/zbxora_out  ## make sure this reflects the out_dir parameter in the monitoring cfg files.
   - export PATH=$PATH:$HOME/zbxdb/bin
@@ -49,3 +49,8 @@ will start that process.
 
 zbxdb_sender will check $ZBXDB_OUT/ and move the contents to $HOME/zxbdb_sender/in/. Next it will send
 the files to zabbix and keep a few days of history in $HOME/zbxdb_sender/archive/
+
+- If anything fails, first check the log/ directory.
+- zbxdb.py can be run from the commandline to debug the cfg files.
+- if you see data coming into $ZBXDB_OUT/ the collection could be OK (errors are reported on stdout)
+- if zbxdb_sender/archive/ remains empty, zbxdb_sender is not picking up your metrics.  Check the log.
