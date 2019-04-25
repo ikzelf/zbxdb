@@ -18,29 +18,30 @@ pip install <zbxdb/requirements.txt
 cp -rp zbxdb/etc $HOME/
 
 in your etc directories are some sample monitoring configs. The naming convention for the configs is
-zbxdb.{db name}.cfg
+zbxdb.{hostname_in_zabbix}.cfg
 Replace the samples with your own configuration files.
 
 Add this entries into .bash_profile of the home directoy of the user that will run zbxdb:
   - export ZBXDB_HOME=$HOME
-  - export ZBXDB_OUT=$ZBXDB_HOME/zbxora_out  ## make sure this reflects the out_dir parameter in the
-                                           ## monitoring cfg files.
+  - export ZBXDB_OUT=$ZBXDB_HOME/zbxora_out  ## make sure this reflects the out_dir parameter in the monitoring cfg files.
   - export PATH=$PATH:$HOME/zbxdb/bin
 
 source .bash_profile
 
 Load the template (zbxdb_template_v3.xml or zbxdb_template_v4.xml) and link it to hostname in zabbix that
-represents the database that you want to monitor.
+represents the database that you want to monitor. That hostname should be in the hostname parameter in your monitoring .cfg file of this database.
 
 make sure that zabbix_sender is available
 create the directory for log, collecting the metrics and workspace for zbxdb_sender
-mkdir $ZBXDB_OUT
-mkdir $ZBXDB_HOME/log
-mkdir $HOME/zbxdb_sender
+- mkdir $ZBXDB_OUT
+- mkdir $ZBXDB_HOME/log
+- mkdir $HOME/zbxdb_sender
 
 add into the crontab:
-* * * * * $HOME/zbxdb/bin/zbxdb_starter > /dev/null 2>&1
-* * * * * $HOME/zbxdb/bin/zbxdb_sender  > /dev/null 2>&1
+
+`* * * * * $HOME/zbxdb/bin/zbxdb_starter > /dev/null 2>&1`
+
+`* * * * * $HOME/zbxdb/bin/zbxdb_sender  > /dev/null 2>&1`
 
 Now, zbxdb_starter will check $ZBXDB_HOME/etc/ for files starting with 'zbxdb.' and ending with '.cfg'
 that are writeable. If such a file is found and the corresponding zbxdb.py process is not running, it
