@@ -27,6 +27,8 @@ zbxdb is very cluster aware and will monitor the full cluster using a single con
 Create a separate host for every Oracle database in zabbix.
 Create a separate host for every mssql instance in zabbix.
 
+[getting started](doc/getting_started.md)
+
 # Adding more db support
 Very simple: give the dbtype a name and select a driver name for it. Ad the {dbtype}.py to the
 dbconnections/ module that should handle the database connection. Add the {driver}.py to the
