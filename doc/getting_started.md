@@ -6,6 +6,7 @@ to the server or proxy port, as wel as a creating a connection to the remote dat
 
 logon as zbxdb
 use pyenv to manage a local python version for zbxdb
+
 curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
 
 pyenv install 3.6.5
