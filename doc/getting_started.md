@@ -13,7 +13,7 @@ pyenv install 3.6.5
 
 git clone https://github.com/ikzelf/zbxdb.git
 
-pip install <zbxdb/requirements.txt
+pip install -r zbxdb/requirements.txt
 
 cp -rp zbxdb/etc $HOME/
 
