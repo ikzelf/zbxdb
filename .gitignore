@@ -2,6 +2,7 @@ __pycache__/
 log/
 *.pyc
 *.pyo
+.tags
 .python-version
 etc/zbxdb.adb00_prod01.cfg
 etc/zbxdb.adb01_prod01.cfg
