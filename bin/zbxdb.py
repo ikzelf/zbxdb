@@ -106,7 +106,7 @@ def get_config(filename, _me):
               'out_dir': "", 'out_file': "", 'hostname': "", 'checks_dir': "",
               'site_checks': "", 'password_enc': "", 'OUTF': 0, 'ME': _me,
               'section': "", 'key': "",
-              'sqltimeout': 3.0}
+              'sqltimeout': 60.0}
     _config = MyConfigParser()
 
     if not os.path.exists(filename):
