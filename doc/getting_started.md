@@ -41,10 +41,10 @@ add into the crontab:
 
 `* * * * * $HOME/zbxdb/bin/zbxdb_starter > /dev/null 2>&1`
 
-`* * * * * $HOME/zbxdb/bin/zbxdb_sender  > /dev/null 2>&1
+`* * * * * $HOME/zbxdb/bin/zbxdb_sender  > /dev/null 2>&1`
 
 or:
-* * * * * export ZBXDB_OUT={out_dir_from_zbxdb.py's};$HOME/zbxdb/bin/zbxdb_sender.py  > /dev/null 2>&1`
+`* * * * * export ZBXDB_OUT={out_dir_from_zbxdb.py's};$HOME/zbxdb/bin/zbxdb_sender.py  > /dev/null 2>&1`
 
 Now, zbxdb_starter will check $ZBXDB_HOME/etc/ for files starting with 'zbxdb.' and ending with '.cfg'
 that are writeable. If such a file is found and the corresponding zbxdb.py process is not running, it
