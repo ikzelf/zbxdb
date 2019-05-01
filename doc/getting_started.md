@@ -38,12 +38,11 @@ create the directory for log, collecting the metrics and workspace for zbxdb_sen
 - mkdir $HOME/zbxdb_sender
 
 add into the crontab:
-
+<br>
 `* * * * * $HOME/zbxdb/bin/zbxdb_starter > /dev/null 2>&1`
-
+<br>
 `* * * * * $HOME/zbxdb/bin/zbxdb_sender  > /dev/null 2>&1`
-
-or:
+<br>or:<br>
 `* * * * * export ZBXDB_OUT={out_dir_from_zbxdb.py's};$HOME/zbxdb/bin/zbxdb_sender.py  > /dev/null 2>&1`
 
 Now, zbxdb_starter will check $ZBXDB_HOME/etc/ for files starting with 'zbxdb.' and ending with '.cfg'
