@@ -2,7 +2,7 @@
 ME=${0##*/}
 NOW=$(date +%Y%m%d-%H%M)
 NOWD=$(date +%a)
-if [ -z "$ZBXDB_HOME" ]
+if [ -z "$ZBXDB_OUT" ]
 then
   . $HOME/.bash_profile
 fi
