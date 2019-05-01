@@ -14,7 +14,7 @@ fi
 
 if [ -z "$ZBXDB_OUT" ]
 then
-  echo "$ME specify ZBXDB_HOME in \$HOME/.bash_profile or as first argument of $ME"
+  echo "$ME specify ZBXDB_OUT in \$HOME/.bash_profile or as first argument of $ME"
   echo "Usage $ME [ZBXDB_OUT]"
   echo "   to collect outputs from that directory to send to zabbix"
   echo "   using \$HOME/$ME directory for work space"
