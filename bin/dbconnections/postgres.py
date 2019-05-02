@@ -1,40 +1,52 @@
+"""postgres specific implementations of zbxdb functions"""
+
+
 def connection_info(conn):
     """get connection info from connected database"""
     conn_info = {'dbversion': "", 'sid': 0, 'instance_type': "rdbms",
                  'serial': 0, 'db_role': "", 'uname': "",
                  'iname': ""}
-    C = conn.cursor()
-    C.execute("select substring(version from '[0-9]+') from version()")
+    _c = conn.cursor()
+    _c.execute("select substring(version from '[0-9]+') from version()")
 
-    DATA = C.fetchone()
+    _data = _c.fetchone()
 
-    conn_info['dbversion'] = DATA[0]
+    conn_info['dbversion'] = _data[0]
 
-    C.execute("select pg_backend_pid()")
-    DATA = C.fetchone()
-    conn_info['sid'] = DATA[0]
-    C.execute("""select inet_server_addr()||':'||p.setting||':'|| d.setting
+    _c.execute("select pg_backend_pid()")
+    _data = _c.fetchone()
+    conn_info['sid'] = _data[0]
+    _c.execute("""select inet_server_addr()||':'||p.setting||':'|| d.setting
           from pg_settings p, pg_settings d
           where p.name = 'port'
           and   d.name = 'data_directory'""")
-    DATA = C.fetchone()
-    conn_info['iname'] = DATA[0]
-    C.execute("SELECT current_user")
-    DATA = C.fetchone()
-    conn_info['uname'] = DATA[0]
-    C.execute("select pg_is_in_recovery()")
-    DATA = C.fetchone()
-    if not DATA[0]:
+    _data = _c.fetchone()
+    conn_info['iname'] = _data[0]
+    _c.execute("SELECT current_user")
+    _data = _c.fetchone()
+    conn_info['uname'] = _data[0]
+    _c.execute("select pg_is_in_recovery()")
+    _data = _c.fetchone()
+
+    if not _data[0]:
         conn_info['db_role'] = "primary"
     else:
         conn_info['db_role'] = "slave"
-    C.close()
+    _c.close()
+
     return conn_info
 
+
 def connect_string(config):
+    """return connect string including application_name"""
+
     return "postgresql://" + config['username'] + ":" + config['password'] + "@" + \
-                       config['db_url']
-def connect(db, c):
-    c = db.connect(connect_string(c))
-    c.set_session(readonly=True)
-    return c
+        config['db_url'] + "?application_name={}".format(config['ME'])
+
+
+def connect(_db, _c):
+    """create the actual connection"""
+    _c = _db.connect(connect_string(_c))
+    _c.set_session(readonly=True)
+
+    return _c
