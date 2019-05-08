@@ -12,7 +12,8 @@ That instance s handled by a single host.
 A Postgres cluster is very similar to a SQLServer instance.
 A cockroach cluster can have many nodes. That cluster is handled by a single host.
 
-To do that, create a simple user that has the ability to use cron, zabbix_sender and is able to connect
+# setup
+To do that, create a simple OS user that has the ability to use cron, zabbix_sender and is able to connect
 to the server or proxy port, as wel as a creating a connection to the remote database[s]. For example create user zbxdb.
 
 logon as zbxdb
