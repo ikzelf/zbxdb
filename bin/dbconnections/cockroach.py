@@ -23,14 +23,19 @@ def connection_info(conn):
     conn_info['uname'] = DATA[0]
     C.execute("select pg_is_in_recovery()")
     DATA = C.fetchone()
+
     if not DATA[0]:
         conn_info['db_role'] = "primary"
     else:
         conn_info['db_role'] = "slave"
     C.close()
+
     return conn_info
+
 
 def connect_string(config):
     return config['db_url']
+
+
 def connect(db, c):
     return db.connect(connect_string(c))

@@ -1,6 +1,17 @@
 This tool provides montoring of remote SQL databases and does not need to be installed on the database
 server[s]. A better place is on the zabbix server or on a zabbix proxy.
 
+# what is a host?
+A host in zabbix can be a computer but also a router, switch, SAN and in this case, a database cluster. A host
+in zabbix is a thing that has a collection of items. For Oracle create a host for the physical database, for
+SQLServer create a host for an Instance, for Postgres create a host for the cluster, for cockroach create a host
+for the cluster. 
+An Oracle database can have multiple Instances and multiple databases. They are collected in a single host.
+A SQLServer instance has multiple databases and in an always on configuration can be active on several machines.
+That instance s handled by a single host.
+A Postgres cluster is very similar to a SQLServer instance.
+A cockroach cluster can have many nodes. That cluster is handled by a single host.
+
 To do that, create a simple user that has the ability to use cron, zabbix_sender and is able to connect
 to the server or proxy port, as wel as a creating a connection to the remote database[s]. For example create user zbxdb.
 
