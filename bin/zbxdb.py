@@ -482,7 +482,7 @@ while True:
                                                sqls[0: 60].replace('\n', ' ').replace('\r', ' '))
                 # checks are loaded now.
                 SECTIONS_JSON = '{\"data\":'+json.dumps(SECTIONS_LIST)+'}'
-                LOGGER.debug("lld key: %s json: %s\n", ME+".lld", ROWS_JSON)
+                LOGGER.debug("lld key: %s json: %s\n", ME+".lld", SECTIONS_JSON)
                 to_outfile(CONFIG, ME+".section.lld", SECTIONS_JSON)
                 ROWS_JSON = '{\"data\":'+json.dumps(OBJECTS_LIST)+'}'
                 LOGGER.debug("lld key: %s json: %s\n", ME+".lld", ROWS_JSON)
