@@ -21,6 +21,7 @@ import datetime
 import gc
 import importlib
 import json
+import logging.config
 import os
 import platform
 import resource
@@ -29,18 +30,34 @@ import sys
 import threading
 import time
 from argparse import ArgumentParser
+# from pdb import set_trace
 from timeit import default_timer as timer
 
 import sqlparse
 
-# from pdb import set_trace
-VERSION = "1.14"
+VERSION = "1.20"
 
 
-def printf(format, *args):
-    """just a simple c-style printf function"""
-    sys.stdout.write(format % args)
-    sys.stdout.flush()
+def setup_logging(
+        default_path='logging.json',
+        default_level=logging.INFO,
+        env_key='LOG_CFG'
+):
+    """Setup logging configuration
+
+    """
+    path = default_path
+    value = os.getenv(env_key, None)
+
+    if value:
+        path = value
+
+    if os.path.exists(path):
+        with open(path, 'rt') as _f:
+            config = json.load(_f)
+        logging.config.dictConfig(config)
+    else:
+        logging.basicConfig(level=default_level)
 
 
 def to_outfile(_c, ikey, values):
@@ -56,12 +73,10 @@ def to_outfile(_c, ikey, values):
         _c['OUTF'].write(_c['hostname'] + ' "' + ikey + '" ' +
                          str(timestamp) + ' ' + str(values) + '\n')
     except TypeError:
-        if ARGS.verbosity:
-            printf("%s %s TypeError in sql %s from section %s\n",
-                   datetime.datetime.fromtimestamp(time.time()), _c['ME'],
-                   _c['key'], _c['section']
-                   )
-            sys.stdout.flush()
+        LOGGER.info("%s TypeError in sql %s from section %s\n",
+                    _c['ME'],
+                    _c['key'], _c['section']
+                    )
         _c['OUTF'].write(_c['hostname'] + " query[" + _c['section']+","+_c['key'] + ",status] " +
                          str(timestamp) + " " + "TypeError" + "\n")
     _c['OUTF'].flush()
@@ -117,7 +132,6 @@ def get_config(filename, _me):
 
     for _i in config:
         _v = get_config_par(_config, _i, _me)
-        # print("{:20s} {}".format(_i, _v))
 
         if _v:
             config[_i] = _v
@@ -150,19 +164,19 @@ def get_config(filename, _me):
 def cancel_sql(_c, _s, _k):
     '''Cancel long running SQL
     '''
-    printf("%s %s cancel_sql %s %s\n",
-           datetime.datetime.fromtimestamp(time.time()), ME, _s, _k)
+    LOGGER.warning("%s cancel_sql %s %s\n", ME, _s, _k)
     _c.cancel()
-    printf("%s %s canceled   %s %s\n",
-           datetime.datetime.fromtimestamp(time.time()), ME, _s, _k)
+    LOGGER.warning("%s canceled   %s %s\n", ME, _s, _k)
     # raise zbx_exception("sql_timeout")
 
 
 ME = os.path.splitext(os.path.basename(__file__))[0]
+setup_logging()
+LOGGER = logging.getLogger(__name__)
 
 if int(platform.python_version().split('.')[0]) < 3:
-    printf("%s needs at least python version 3, currently %s",
-           ME, platform.python_version())
+    LOGGER.critical("%s needs at least python version 3, currently %s",
+                    ME, platform.python_version())
     sys.exit(1)
 
 STARTTIME = int(time.time())
@@ -186,65 +200,67 @@ if ARGS.parameter:
             ARGS.parameter, CONFIG[ARGS.parameter]))
     sys.exit(0)
 
-printf("%s start python-%s %s-%s pid=%s Connecting for hostname %s...\n",
-       datetime.datetime.fromtimestamp(STARTTIME),
-       platform.python_version(), ME, VERSION, os.getpid(), CONFIG['hostname']
-       )
+
+LOGGER.warning("start python-%s %s-%s pid=%s Connecting ...\n",
+               platform.python_version(), ME, VERSION, os.getpid()
+               )
 
 if CONFIG['password']:
-    printf("%s first encrypted the plaintext password and removed from config\n",
-           datetime.datetime.fromtimestamp(STARTTIME)
-           )
+    LOGGER.warning(
+        "first encrypted the plaintext password and removed from config\n")
 
-printf('%s using sql_timeout %d\n',
-       datetime.datetime.fromtimestamp(time.time()),
-       CONFIG['sqltimeout'])
 # add a few seconds extra to allow the driver timeout handling to do the it's job.
 # for example, cx_oracle has a cancel routine that we call after a timeout. If
 # there is a network problem, the cancel gets a ORA-12152: TNS:unable to send break message
 # setting this defaulttimeout should speed this up
 socket.setdefaulttimeout(CONFIG['sqltimeout']+3)
 
-printf("%s %s found db_type=%s, driver %s; checking for driver\n",
-       datetime.datetime.fromtimestamp(time.time()), ME,
-       CONFIG['db_type'], CONFIG['db_driver'])
+LOGGER.warning("%s found db_type=%s, driver %s; checking for driver\n",
+               ME,
+               CONFIG['db_type'], CONFIG['db_driver'])
 try:
     DBDR = __import__(CONFIG['db_driver'])
-    print(DBDR)
+    LOGGER.info(DBDR)
 except:
-    printf("%s supported will be oracle(cx_Oracle), postgres(psycopg2), \
+    LOGGER.critical("%s supported will be oracle(cx_Oracle), postgres(psycopg2), \
            mysql(mysql.connector), mssql(pymssql/_mssql), db2(ibm_db_dbi)\n", ME)
-    printf("%s tested are oracle(cx_Oracle), postgres(psycopg2)\n", ME)
-    printf("Don't forget to install the drivers first ...\n")
+    LOGGER.critical(
+        "%s tested are oracle(cx_Oracle), postgres(psycopg2)\n", ME)
+    LOGGER.critical(
+        "Don't forget to install the drivers first ...\n", exc_info=True)
     raise
 
-printf("%s %s driver %s loaded\n",
-       datetime.datetime.fromtimestamp(time.time()), ME, CONFIG['db_driver'])
+LOGGER.info("%s driver %s loaded\n",
+            ME, CONFIG['db_driver'])
 try:
     DBE = importlib.import_module("drivererrors." + CONFIG['db_driver'])
 except:
-    printf("Failed to load driver error routines\n")
-    printf("Looked in %s\n", sys.path)
+    LOGGER.critical("Failed to load driver error routines\n")
+    LOGGER.critical("Looked in %s\n", sys.path, exc_info=True)
     raise
 
-printf("%s %s driver drivererrors for %s loaded\n",
-       datetime.datetime.fromtimestamp(time.time()), ME, CONFIG['db_driver'])
+LOGGER.info("%s driver drivererrors for %s loaded\n",
+            ME, CONFIG['db_driver'])
 try:
     DBC = importlib.import_module("dbconnections." + CONFIG['db_type'])
 except:
-    printf("Failed to load dbconnections routines for %s\n", CONFIG['db_type'])
-    printf("Looked in %s\n", sys.path)
+    LOGGER.critical(
+        "Failed to load dbconnections routines for %s\n", CONFIG['db_type'])
+    LOGGER.critical("Looked in %s\n", sys.path, exc_info=True)
     raise
 
-printf("%s %s dbconnections for %s loaded\n",
-       datetime.datetime.fromtimestamp(time.time()), ME, CONFIG['db_type'])
-print(DBC)
-print(DBE)
+LOGGER.info("%s dbconnections for %s loaded\n",
+            ME, CONFIG['db_type'])
+LOGGER.info(DBC)
+LOGGER.info(DBE)
 
-if ARGS.verbosity:
-    printf("%s %s connect string: %s\n",
-           datetime.datetime.fromtimestamp(time.time()), ME,
-           DBC.connect_string(CONFIG))
+LOGGER.info("hostname in zabbix: %s", CONFIG['hostname'])
+LOGGER.info("connect string    : %s\n", DBC.connect_string(CONFIG))
+LOGGER.info('using sql_timeout : %ds\n', CONFIG['sqltimeout'])
+LOGGER.info("out_file          : %s\n", CONFIG['out_file'])
+
+if CONFIG['site_checks']:
+    LOGGER.info("site_checks       : %s\n", CONFIG['site_checks'])
 
 CHECKFILES = [{'name': __file__, 'lmod': os.path.getmtime(__file__)},
               {'name': DBC.__file__, 'lmod': os.path.getmtime(DBC.__file__)},
@@ -260,11 +276,6 @@ CONNECTERROR = 0
 QUERYCOUNTER = 0
 QUERYERROR = 0
 
-if CONFIG['site_checks']:
-    printf("%s site_checks: %s\n",
-           datetime.datetime.fromtimestamp(time.time()), CONFIG['site_checks'])
-printf("%s out_file:%s\n",
-       datetime.datetime.fromtimestamp(time.time()), CONFIG['out_file'])
 SLEEPC = 0
 SLEEPER = 1
 PERROR = 0
@@ -273,11 +284,10 @@ while True:
     try:
         for i in range(0, 2):
             if CHECKFILES[i]['lmod'] != os.stat(CHECKFILES[i]['name']).st_mtime:
-                printf("%s %s Changed, from %s to %s restarting ..\n",
-                       datetime.datetime.fromtimestamp(
-                           time.time()), CHECKFILES[i]['name'],
-                       time.ctime(CHECKFILES[i]['lmod']),
-                       time.ctime(os.path.getmtime(CHECKFILES[i]['name'])))
+                LOGGER.warning("%s Changed, from %s to %s restarting ..\n",
+                               CHECKFILES[i]['name'],
+                               time.ctime(CHECKFILES[i]['lmod']),
+                               time.ctime(os.path.getmtime(CHECKFILES[i]['name'])))
                 os.execv(__file__, sys.argv)
 
         # reset list in case of a just new connection that reloads the config
@@ -293,9 +303,8 @@ while True:
         START = timer()
 
         if ARGS.verbosity:
-            printf('%s connecting to %s\n',
-                   datetime.datetime.fromtimestamp(time.time()),
-                   DBC.connect_string(CONFIG))
+            LOGGER.info('connecting to %s\n',
+                        DBC.connect_string(CONFIG))
         # with dbc.connect(dbdr, config) as conn:
         # pymysql returns a cursor from __enter__() :-(
         CONN_HAS_CANCEL = False
@@ -303,21 +312,20 @@ while True:
 
         if "cancel" in dir(CONN):
             CONN_HAS_CANCEL = True
-        print(CONN)
+        LOGGER.info(CONN)
         CONNECTCOUNTER += 1
         to_outfile(CONFIG, ME+"[connect,status]", 0)
         CURS = CONN.cursor()
         CONNECT_INFO = DBC.connection_info(CONN)
-        printf('%s connected db_url %s type %s db_role %s version %s\n'
-               '%s user %s %s sid,serial %d,%d instance %s as %s cancel:%s\n',
-               datetime.datetime.fromtimestamp(time.time()),
-               CONFIG['db_url'], CONNECT_INFO['instance_type'], CONNECT_INFO['db_role'],
-               CONNECT_INFO['dbversion'],
-               datetime.datetime.fromtimestamp(time.time()),
-               CONFIG['username'], CONNECT_INFO['uname'], CONNECT_INFO['sid'],
-               CONNECT_INFO['serial'],
-               CONNECT_INFO['iname'],
-               CONFIG['role'], CONN_HAS_CANCEL)
+        LOGGER.warning('connected db_url %s type %s db_role %s version %s\n'
+                       '%s user %s %s sid,serial %d,%d instance %s as %s cancel:%s\n',
+                       CONFIG['db_url'], CONNECT_INFO['instance_type'], CONNECT_INFO['db_role'],
+                       CONNECT_INFO['dbversion'],
+                       datetime.datetime.fromtimestamp(time.time()),
+                       CONFIG['username'], CONNECT_INFO['uname'], CONNECT_INFO['sid'],
+                       CONNECT_INFO['serial'],
+                       CONNECT_INFO['iname'],
+                       CONFIG['role'], CONN_HAS_CANCEL)
 
         if CONNECT_INFO['db_role'] in ["PHYSICAL STANDBY", "SLAVE"]:
             CHECKSFILE = os.path.join(CONFIG['checks_dir'],
@@ -338,8 +346,7 @@ while True:
                                        addition + ".cfg")
                 CHECKFILES.append({'name': addfile, 'lmod': 0})
                 FILES.extend([addfile])
-        printf('%s using checks from %s\n',
-               datetime.datetime.fromtimestamp(time.time()), FILES)
+        LOGGER.info('using checks from %s\n', FILES)
 
         for CHECKSFILE in CHECKFILES:
             if not os.path.exists(CHECKSFILE['name']):
@@ -354,9 +361,7 @@ while True:
         OPENTIME = int(time.time())
 
         while True:
-            if ARGS.verbosity:
-                printf("%s %s while True\n",
-                       datetime.datetime.fromtimestamp(time.time()), ME)
+            LOGGER.debug("%s while True\n", ME)
             # keep this to compare for when to dump stats
             NOWRUN = int(time.time())
             RUNTIMER = timer()  # keep this to compare for when to dump stats
@@ -367,33 +372,26 @@ while True:
                 try:
                     current_lmod = os.path.getmtime(CHECKFILES[i]['name'])
                 except OSError as _e:
-                    printf("%s %s: %s\n",
-                           datetime.datetime.fromtimestamp(time.time()),
-                           CHECKFILES[i]['name'],
-                           _e.strerror)
+                    LOGGER.warning("%s: %s\n",
+                                   CHECKFILES[i]['name'], _e.strerror)
                     # ignore the error, maybe temporary due to an update
                     current_lmod = CHECKFILES[i]['lmod']
 
                 if CHECKFILES[i]['lmod'] != current_lmod:
                     if i < 3:  # this is the script or module itself that changed
-                        printf("%s %s changed, from %s to %s restarting ...\n",
-                               datetime.datetime.fromtimestamp(time.time()),
-                               CHECKFILES[i]['name'],
-                               time.ctime(CHECKFILES[i]['lmod']),
-                               time.ctime(current_lmod))
+                        LOGGER.warning("%s changed, from %s to %s restarting ...\n",
+                                       CHECKFILES[i]['name'],
+                                       time.ctime(CHECKFILES[i]['lmod']),
+                                       time.ctime(current_lmod))
                         os.execv(__file__, sys.argv)
                     else:
                         if CHECKFILES[i]['lmod'] == 0:
-                            printf("%s checks loading %s\n",
-                                   datetime.datetime.fromtimestamp(
-                                       time.time()),
-                                   CHECKFILES[i]['name'])
+                            LOGGER.warning("checks loading %s\n",
+                                           CHECKFILES[i]['name'])
                             NEEDTOLOAD = "yes"
                         else:
-                            printf("%s checks changed, reloading %s\n",
-                                   datetime.datetime.fromtimestamp(
-                                       time.time()),
-                                   CHECKFILES[i]['name'])
+                            LOGGER.warning("checks changed, reloading %s\n",
+                                           CHECKFILES[i]['name'])
                             NEEDTOLOAD = "yes"
 
             if NEEDTOLOAD == "yes":
@@ -447,17 +445,14 @@ while True:
                         except configparser.Error:
                             to_outfile(CONFIG, ME + "[checks," + str(i) +
                                        ",status]", 13)
-                            printf("%s\tfile %s has parsing errors %s %s ->(13)\n",
-                                   datetime.datetime.fromtimestamp(
-                                       time.time()),
-                                   CHECKFILES[i]['name'])
+                            LOGGER.critical("file %s has parsing errors ->(13)\n",
+                                            CHECKFILES[i]['name'])
                     except IOError as io_error:
                         to_outfile(
                             CONFIG, ME + "[checks," + str(i) + ",status]", 11)
-                        printf("%s\tfile %s IOError %s %s ->(11)\n",
-                               datetime.datetime.fromtimestamp(time.time()),
-                               CHECKFILES[i]['name'],
-                               io_error.errno, io_error.strerror)
+                        LOGGER.critical("file %s IOError %s %s ->(11)\n",
+                                        CHECKFILES[i]['name'],
+                                        io_error.errno, io_error.strerror)
 
                     CHECKFILES[i]['lmod'] = os.stat(
                         CHECKFILES[i]['name']).st_mtime
@@ -467,13 +462,10 @@ while True:
                         secMins = int(CHECKS.get(section, "minutes"))
 
                         if secMins == 0:
-                            printf("%s\t%s run at connect only\n",
-                                   datetime.datetime.fromtimestamp(time.time()), section)
+                            LOGGER.info("%s run at connect only\n", section)
                         else:
-                            printf("%s\t%s run every %d minutes\n",
-                                   datetime.datetime.fromtimestamp(
-                                       time.time()), section,
-                                   secMins)
+                            LOGGER.info("%s run every %d minutes\n",
+                                        section, secMins)
                         # dump own discovery items of the queries per section
                         E = collections.OrderedDict()
                         E = {"{#SECTION}": section}
@@ -485,16 +477,15 @@ while True:
                                 d = collections.OrderedDict()
                                 d = {"{#SECTION}": section, "{#KEY}": key}
                                 OBJECTS_LIST.append(d)
-                                printf("%s\t\t%s: %s\n",
-                                       datetime.datetime.fromtimestamp(
-                                           time.time()),
-                                       key, sqls[0: 60].replace('\n', ' ').replace('\r', ' '))
+                                LOGGER.warning("%s: %s\n",
+                                               key,
+                                               sqls[0: 60].replace('\n', ' ').replace('\r', ' '))
                 # checks are loaded now.
                 SECTIONS_JSON = '{\"data\":'+json.dumps(SECTIONS_LIST)+'}'
-                # printf ("DEBUG lld key: %s json: %s\n", ME+".lld", ROWS_JSON)
+                LOGGER.debug("lld key: %s json: %s\n", ME+".lld", ROWS_JSON)
                 to_outfile(CONFIG, ME+".section.lld", SECTIONS_JSON)
                 ROWS_JSON = '{\"data\":'+json.dumps(OBJECTS_LIST)+'}'
-                # printf ("DEBUG lld key: %s json: %s\n", ME+".lld", ROWS_JSON)
+                LOGGER.debug("lld key: %s json: %s\n", ME+".lld", ROWS_JSON)
                 to_outfile(CONFIG, ME + ".query.lld", ROWS_JSON)
                 # sqls can contain multiple statements per key. sqlparse to split them
                 # now. Otherwise use a lot of extra cycles when splitting at runtime
@@ -534,11 +525,8 @@ while True:
 
                         for key, sqls in sorted(x.items()):
                             if sqls and key != "minutes":
-                                if ARGS.verbosity:
-                                    printf("%s %s section: %s key: %s\n",
-                                           datetime.datetime.fromtimestamp(
-                                               time.time()), ME,
-                                           section, key)
+                                LOGGER.debug("%s section: %s key: %s\n",
+                                             ME, section, key)
                                 try:
                                     QUERYCOUNTER += 1
 
@@ -553,12 +541,8 @@ while True:
                                     for statement in ALL_SQL[(section, key)]:
                                         lstatement = statement
 
-                                        if ARGS.verbosity and ARGS.verbosity > 1:
-                                            printf("%s %s section: %s key: %s sql: %s\n",
-                                                   datetime.datetime.fromtimestamp(
-                                                       time.time()),
-                                                   ME,
-                                                   section, key, statement)
+                                        LOGGER.debug("%s section: %s key: %s sql: %s\n",
+                                                     ME, section, key, statement)
                                         CURS.execute(statement)
                                     startf = timer()
                                     # output for the last query must include the
@@ -581,8 +565,8 @@ while True:
                                             OBJECTS_LIST.append(d)
                                         ROWS_JSON = '{\"data\":' + \
                                             json.dumps(OBJECTS_LIST)+'}'
-                                        # printf ("DEBUG lld key: %s json: %s\n", key,
-                                        #          ROWS_JSON)
+                                        LOGGER.debug("DEBUG lld key: %s json: %s\n", key,
+                                                     ROWS_JSON)
                                         to_outfile(CONFIG, key, ROWS_JSON)
                                         to_outfile(CONFIG, ME +
                                                    "[query," + section + "," +
@@ -603,11 +587,9 @@ while True:
                                                        section + "," +
                                                        key + ",status]", 0)
                                         else:
-                                            printf('%s key=%s.%s ZBXDB-%d: ' +
-                                                   'SQL format error: %s\n',
-                                                   datetime.datetime.fromtimestamp(
-                                                       time.time()),
-                                                   section, key, 2, "expect key,value pairs")
+                                            LOGGER.critical('key=%s.%s ZBXDB-%d: ' +
+                                                            'SQL format error: %s\n',
+                                                            section, key, 2, "expect key,value pairs")
                                             to_outfile(CONFIG, ME +
                                                        "[query," + section + "," +
                                                        key + ",status]", 2)
@@ -635,37 +617,27 @@ while True:
                                     to_outfile(CONFIG, ME + "[query," +
                                                section + "," +
                                                key + ",ela]", ELAPSED)
-                                    printf('%s key=%s.%s ZBXDB-%s: Db execution error: %s\n',
-                                           datetime.datetime.fromtimestamp(
-                                               time.time()),
-                                           section, key, ecode, emsg.strip())
+                                    LOGGER.warning('key=%s.%s ZBXDB-%s: Db execution error: %s\n',
+                                                   section, key, ecode, emsg.strip())
 
                                     if DBE.db_error_needs_new_session(DBDR,
                                                                       ecode):
                                         raise
 
-                                    if ARGS.verbosity:
-                                        printf("%s %s commit\n",
-                                               datetime.datetime.fromtimestamp(time.time()), ME)
+                                    LOGGER.debug("%s commit\n", ME)
                                     CONN.commit()
 
-                                    if ARGS.verbosity:
-                                        printf("%s %s committed\n",
-                                               datetime.datetime.fromtimestamp(time.time()), ME)
+                                    LOGGER.debug("%s committed\n", ME)
                         # end of a section ## time to run the checks again from this section
                         to_outfile(CONFIG, ME + "[query," + section + ",,ela]",
                                    timer() - SectionTimer)
             # release locks that might have been taken
 
-            if ARGS.verbosity:
-                printf("%s %s commit\n",
-                       datetime.datetime.fromtimestamp(time.time()), ME)
+            LOGGER.debug("%s %s commit 2\n", ME)
 
             CONN.commit()
 
-            if ARGS.verbosity:
-                printf("%s %s rolledback\n",
-                       datetime.datetime.fromtimestamp(time.time()), ME)
+            LOGGER.debug("%s rolledback\n", ME)
             # dump metric for summed elapsed time of this run
             to_outfile(CONFIG, ME + "[query,,,ela]",
                        timer() - RUNTIMER)
@@ -680,19 +652,18 @@ while True:
             if ((NOWRUN - STARTTIME) % 3600) == 0:
                 gc.collect()
                 # dump stats
-                printf("%s connect %d times, %d fail; started %d queries, " +
-                       "%d fail memrss:%d user:%f sys:%f\n",
-                       datetime.datetime.fromtimestamp(time.time()),
-                       CONNECTCOUNTER, CONNECTERROR, QUERYCOUNTER, QUERYERROR,
-                       resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
-                       resource.getrusage(resource.RUSAGE_SELF).ru_utime,
-                       resource.getrusage(resource.RUSAGE_SELF).ru_stime)
+                LOGGER.warning("connect %d times, %d fail; started %d queries, \
+                               %d fail memrss:%d user:%f sys:%f\n",
+                               CONNECTCOUNTER, CONNECTERROR, QUERYCOUNTER, QUERYERROR,
+                               resource.getrusage(
+                                   resource.RUSAGE_SELF).ru_maxrss,
+                               resource.getrusage(
+                                   resource.RUSAGE_SELF).ru_utime,
+                               resource.getrusage(resource.RUSAGE_SELF).ru_stime)
             # try to keep activities on the same starting second:
             SLEEPTIME = 60 - ((int(time.time()) - STARTTIME) % 60)
 
-            if ARGS.verbosity:
-                printf("%s Sleeping for %d seconds\n",
-                       datetime.datetime.fromtimestamp(time.time()), SLEEPTIME)
+            LOGGER.debug("Sleeping for %d seconds\n", SLEEPTIME)
             time.sleep(SLEEPTIME)
             CONMINS = CONMINS + 1  # not really mins since the checks could
             #                       have taken longer than 1 minute to complete
@@ -716,10 +687,9 @@ while True:
                 # don't sleep longer than 5 mins after connect failures
                 SLEEPER += 10
             SLEEPC = 0
-        printf('%s: (%d.%d)connection error: [%s] %s for %s@%s\n',
-               datetime.datetime.fromtimestamp(time.time()),
-               SLEEPC, SLEEPER, ECODE, EMSG.strip().replace('\n', ' ').replace('\r', ' '),
-               CONFIG['username'], CONFIG['db_url'])
+        LOGGER.warning('(%d.%d)connection error: [%s] %s for %s@%s\n',
+                       SLEEPC, SLEEPER, ECODE, EMSG.strip().replace('\n', ' ').replace('\r', ' '),
+                       CONFIG['username'], CONFIG['db_url'])
         # set_trace()
         time.sleep(SLEEPER)
     except (KeyboardInterrupt, SystemExit):
