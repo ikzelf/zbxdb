@@ -80,10 +80,8 @@ do
     echo mon $mon `ps -fu$UID|grep -v grep|grep $mon` $procs
     if [ $procs -ne 0 ]
     then
-      id=$(basename $mon)
-      tail -20 log/$id.log|sed "s/^/$id /" >>log/$ME.log
       echo "`date ` Starting $mon" >>log/$ME.log
-      nohup zbxdb.py -c $mon >log/$id.log 2>&1 &
+      nohup zbxdb.py -c $mon >/dev/null 2>>log/$ME.log &
     fi
     sleep 1
   fi
