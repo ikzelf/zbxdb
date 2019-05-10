@@ -77,7 +77,7 @@ def set_logfile(_l, _file):
                 os.path.dirname(_h.baseFilename),
                 os.path.basename(_file)
             )
-            _l.warning("Continue logging in %s", _h.baseFilename)
+            _l.info("Continue logging in %s", _h.baseFilename)
             _h.close()
 
 
@@ -276,7 +276,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                 _args.parameter, _config[_args.parameter]))
         sys.exit(0)
 
-    LOGGER.warning("start python-%s %s-%s pid=%s Connecting ...\n",
+    LOGGER.info("start python-%s %s-%s pid=%s Connecting ...\n",
                    platform.python_version(), ME, VERSION, os.getpid()
                    )
 
@@ -292,7 +292,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
 # setting this defaulttimeout should speed this up
     socket.setdefaulttimeout(_config['sqltimeout']+3)
 
-    LOGGER.warning("%s found db_type=%s, driver %s; checking for driver\n",
+    LOGGER.info("%s found db_type=%s, driver %s; checking for driver\n",
                    ME,
                    _config['db_type'], _config['db_driver'])
     db_driver = load_driver(_config)
@@ -367,7 +367,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
             to_outfile(_config, ME+"[connect,status]", 0)
             _cursor = _conn.cursor()
             connect_info = db_connections.connection_info(_conn)
-            LOGGER.warning('connected db_url %s type %s db_role %s version %s\n'
+            LOGGER.info('connected db_url %s type %s db_role %s version %s\n'
                            '%s user %s %s sid,serial %d,%d instance %s as %s cancel:%s\n',
                            _config['db_url'], connect_info['instance_type'],
                            connect_info['db_role'],
@@ -440,7 +440,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                             os.execv(__file__, sys.argv)
                         else:
                             if check_files[i]['lmod'] == 0:
-                                LOGGER.warning("checks loading %s\n",
+                                LOGGER.info("checks loading %s\n",
                                                check_files[i]['name'])
                                 need_to_load = "yes"
                             else:
@@ -533,7 +533,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                                     _d = collections.OrderedDict()
                                     _d = {"{#SECTION}": section, "{#KEY}": key}
                                     objects_list.append(_d)
-                                    LOGGER.warning("%s: %s\n",
+                                    LOGGER.info("%s: %s\n",
                                                    key,
                                                    sqls[0: 60].
                                                    replace('\n', ' ').replace('\r', ' '))
@@ -681,7 +681,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                                         to_outfile(_config, ME + "[query," +
                                                    section + "," +
                                                    key + ",ela]", elapsed_s)
-                                        LOGGER.warning('key=%s.%s ZBXDB-%s: '
+                                        LOGGER.info('key=%s.%s ZBXDB-%s: '
                                                        'Db execution error: %s\n',
                                                        section, key, ecode, emsg.strip())
 
@@ -717,7 +717,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                 if ((now_run - start_time) % 3600) == 0:
                     gc.collect()
                     # dump stats
-                    LOGGER.warning("connect %d times, %d fail; started %d queries, "
+                    LOGGER.info("connect %d times, %d fail; started %d queries, "
                                    "%d fail memrss:%d user:%f sys:%f\n",
                                    conn_counter, conn_errors, query_counter,
                                    query_errors,
