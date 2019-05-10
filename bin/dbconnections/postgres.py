@@ -1,6 +1,4 @@
 """postgres specific implementations of zbxdb functions"""
-
-
 def connection_info(conn):
     """get connection info from connected database"""
     conn_info = {'dbversion': "", 'sid': 0, 'instance_type': "rdbms",

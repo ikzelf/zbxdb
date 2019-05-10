@@ -4,6 +4,7 @@ log/
 *.pyo
 .tags
 .python-version
+etc/logging.json
 etc/zbxdb.adb00_prod01.cfg
 etc/zbxdb.adb01_prod01.cfg
 etc/zbxdb.CLU-DC2-007_INSTANCE4.cfg

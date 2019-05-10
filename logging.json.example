@@ -1,0 +1,37 @@
+{
+    "version": 1,
+		"_comment": "  copy this file as logging.json in etc/",
+    "disable_existing_loggers": false,
+    "formatters": {
+        "simple": {
+            "format": "%(asctime)s_%(name)s_%(levelno)s_%(message)s"
+        },
+				"onlyTime":{
+            "format": "%(asctime)s_%(name)s %(message)s"
+				}
+    },
+
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": "DEBUG",
+            "formatter": "onlyTime",
+            "stream": "ext://sys.stdout"
+        },
+
+        "file_handler": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "INFO",
+            "formatter": "simple",
+            "filename": "log/zbxdb.log",
+            "maxBytes": 10485760,
+            "backupCount": 4,
+            "encoding": "utf8"
+        }
+    },
+
+    "root": {
+        "level": "INFO",
+        "handlers": ["console", "file_handler"]
+    }
+}

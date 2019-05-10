@@ -28,6 +28,7 @@ git clone https://github.com/ikzelf/zbxdb.git
 pip install -r zbxdb/requirements.txt
 
 cp -rp zbxdb/etc $HOME/
+cp -p zbxdb/logging.json.example  $HOME/etc/
 
 in your etc directory are some sample monitoring configs. The naming convention for the configs is
 zbxdb.{hostname_in_zabbix}.cfg

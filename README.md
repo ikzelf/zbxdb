@@ -243,6 +243,18 @@ least required privileges, both on OS as on database level. Especially Oracle ha
 **Don't use a root account for this. Any OS user will do, if it can use zabbix-sender**
 Using high privileged accounts is not needed in Oracle.
 
+# upgrading
+Normally is is enough to just overwrite zbxdb.py with the new copy. The running instance will notice
+the change and reload it without any problems.
+## v2.0 --  logging module introduced
+When coming from v1, the upgrade to v2 has to be prepared by putting a logging.json in your
+ZBXDB_HOME/etc/ folder. If that is in place the upgrade will be a smooth as before, otherwise
+zbxdb.py will fallback to a default logging configuration, to stdout. No problem at all but since v2
+logging is properly introduced and has more options to configure. To make the best of it, it is best
+to completely the running instances of zbxdb.py, because zbxdb_starter opens with output redirection
+to stdout and that could give slightly confusing messages like msg M2 with timestamp t+1 appearing
+sooner than msg M1 with timestamp t
+
 # database user creation:
 # Oracle classic
 ```
