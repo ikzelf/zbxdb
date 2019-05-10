@@ -35,11 +35,11 @@ from timeit import default_timer as timer
 
 import sqlparse
 
-VERSION = "1.20"
+VERSION = "1.21"
 
 
 def setup_logging(
-        default_path='logging.json',
+        default_path='etc/logging.json',
         default_level=logging.INFO,
         env_key='LOG_CFG'
 ):
@@ -63,6 +63,7 @@ def setup_logging(
                 print("Does the path for filename exist?")
                 raise
     else:
+        print("Falling back to default logging config")
         logging.basicConfig(level=default_level)
 
 

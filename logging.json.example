@@ -1,5 +1,6 @@
 {
     "version": 1,
+		"_comment": "  copy this file as logging.json in etc/",
     "disable_existing_loggers": false,
     "formatters": {
         "simple": {
