@@ -35,7 +35,7 @@ from timeit import default_timer as timer
 
 import sqlparse
 
-VERSION = "2.00"
+VERSION = "2.01"
 
 
 def setup_logging(
@@ -62,9 +62,12 @@ def setup_logging(
                 print(config)
                 print("Does the path for filename exist?")
                 raise
-    else:
-        print("Falling back to default logging config")
-        logging.basicConfig(level=default_level)
+
+            return path
+    print("Falling back to default logging config")
+    logging.basicConfig(level=default_level)
+
+    return False
 
 
 def set_logfile(_l, _file):
@@ -257,8 +260,6 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
     _parser = ArgumentParser()
     _parser.add_argument("-c", "--cfile", dest="configfile", default=ME+".cfg",
                          help="Configuration file", metavar="FILE", required=True)
-    _parser.add_argument("-v", "--verbosity", action="count",
-                         help="increase output verbosity")
     _parser.add_argument("-p", "--parameter", action="store",
                          help="show parameter from configfile")
     _args = _parser.parse_args()
@@ -277,8 +278,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
         sys.exit(0)
 
     LOGGER.info("start python-%s %s-%s pid=%s Connecting ...\n",
-                   platform.python_version(), ME, VERSION, os.getpid()
-                   )
+                platform.python_version(), ME, VERSION, os.getpid()
+                )
 
     if _config['password']:
         LOGGER.warning(
@@ -293,8 +294,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
     socket.setdefaulttimeout(_config['sqltimeout']+3)
 
     LOGGER.info("%s found db_type=%s, driver %s; checking for driver\n",
-                   ME,
-                   _config['db_type'], _config['db_driver'])
+                ME,
+                _config['db_type'], _config['db_driver'])
     db_driver = load_driver(_config)
     driver_errors = load_driver_errors(_config)
     db_connections = load_db_connections(_config)
@@ -312,15 +313,28 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
     if _config['site_checks']:
         LOGGER.info("site_checks       : %s\n", _config['site_checks'])
 
+    if LOG_CONF:
+        sys_files = 4
+    else:
+        sys_files = 3
     check_files = [{'name': __file__, 'lmod': os.path.getmtime(__file__)},
                    {'name': db_connections.__file__,
                     'lmod': os.path.getmtime(db_connections.__file__)},
                    {'name': driver_errors.__file__,
-                    'lmod': os.path.getmtime(driver_errors.__file__)}
+                    'lmod': os.path.getmtime(driver_errors.__file__)},
+                   {'name': LOG_CONF,
+                    'lmod': os.path.getmtime(LOG_CONF)}
                    ]
-    to_outfile(_config, ME + "[checks,0,lmod]", int(check_files[0]['lmod']))
-    to_outfile(_config, ME + "[checks,1,lmod]", int(check_files[1]['lmod']))
-    to_outfile(_config, ME + "[checks,2,lmod]", int(check_files[2]['lmod']))
+
+    if LOG_CONF:
+        check_files.append(
+            {'name': LOG_CONF, 'lmod': os.path.getmtime(LOG_CONF)})
+
+    for i in range(sys_files):
+        to_outfile(_config,
+                   "{}[checks,{},name]".format(ME, i), check_files[i]['name'])
+        to_outfile(_config,
+                   "{}[checks,{},lmod]".format(ME, i), int(check_files[i]['lmod']))
 
     conn_counter = 0
     conn_errors = 0
@@ -333,7 +347,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
 
     while True:
         try:
-            for i in range(0, 2):
+            for i in range(sys_files):
                 if check_files[i]['lmod'] != os.stat(check_files[i]['name']).st_mtime:
                     LOGGER.warning("%s Changed, from %s to %s restarting ..\n",
                                    check_files[i]['name'],
@@ -346,8 +360,12 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                            {'name': db_connections.__file__,
                             'lmod': os.path.getmtime(db_connections.__file__)},
                            {'name': driver_errors.__file__,
-                            'lmod': os.path.getmtime(driver_errors.__file__)}
-                           ]
+                            'lmod': os.path.getmtime(driver_errors.__file__)}]
+
+            if LOG_CONF:
+                check_files.append(
+                    {'name': LOG_CONF, 'lmod': os.path.getmtime(LOG_CONF)})
+
             _config = get_config(_args.configfile, ME)
             _config['password'] = decrypted(_config['password_enc'])
 
@@ -368,16 +386,16 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
             _cursor = _conn.cursor()
             connect_info = db_connections.connection_info(_conn)
             LOGGER.info('connected db_url %s type %s db_role %s version %s\n'
-                           '%s user %s %s sid,serial %d,%d instance %s as %s cancel:%s\n',
-                           _config['db_url'], connect_info['instance_type'],
-                           connect_info['db_role'],
-                           connect_info['dbversion'],
-                           datetime.datetime.fromtimestamp(time.time()),
-                           _config['username'], connect_info['uname'],
-                           connect_info['sid'],
-                           connect_info['serial'],
-                           connect_info['iname'],
-                           _config['role'], conn_has_cancel)
+                        '%s user %s %s sid,serial %d,%d instance %s as %s cancel:%s\n',
+                        _config['db_url'], connect_info['instance_type'],
+                        connect_info['db_role'],
+                        connect_info['dbversion'],
+                        datetime.datetime.fromtimestamp(time.time()),
+                        _config['username'], connect_info['uname'],
+                        connect_info['sid'],
+                        connect_info['serial'],
+                        connect_info['iname'],
+                        _config['role'], conn_has_cancel)
 
             if connect_info['db_role'] in ["PHYSICAL STANDBY", "SLAVE"]:
                 checks_file = os.path.join(_config['checks_dir'],
@@ -422,7 +440,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
 
                 # pylint: disable=consider-using-enumerate
 
-                for i in range(len(check_files)):  # at index 0 is the script itself
+                for i in range(len(check_files)):  # at 0 - sys_files is the script itself
                     try:
                         current_lmod = os.path.getmtime(check_files[i]['name'])
                     except OSError as _e:
@@ -432,7 +450,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                         current_lmod = check_files[i]['lmod']
 
                     if check_files[i]['lmod'] != current_lmod:
-                        if i < 3:  # this is the script or module itself that changed
+                        if i < sys_files:  # it is the script, a module or LOG_CONF
+                                           # that changed
                             LOGGER.warning("%s changed, from %s to %s restarting ...\n",
                                            check_files[i]['name'],
                                            time.ctime(check_files[i]['lmod']),
@@ -441,7 +460,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                         else:
                             if check_files[i]['lmod'] == 0:
                                 LOGGER.info("checks loading %s\n",
-                                               check_files[i]['name'])
+                                            check_files[i]['name'])
                                 need_to_load = "yes"
                             else:
                                 LOGGER.warning("checks changed, reloading %s\n",
@@ -480,17 +499,18 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                     files_json = '{\"data\":'+json.dumps(file_list)+'}'
                     to_outfile(_config, ME+".files.lld", files_json)
 
-                    for i in range(3, len(check_files)):
+                    for i in range(sys_files, len(check_files)):
                         # #0 is executable that is also checked for updates
                         # #1 db_connections module
                         # #2 driver_errors module
+                        # #3 LOG_CONF if it exists ...
+                        # so, skip those and pick the real check_files
                         _checks = configparser.RawConfigParser()
                         try:
                             check_file = open(check_files[i]['name'], 'r')
-                            to_outfile(_config, ME + "[checks," + str(i) +
-                                       ",name]", check_files[i]['name'])
-                            to_outfile(_config, ME + "[checks," + str(i) +
-                                       ",lmod]",
+                            to_outfile(_config, "{}[checks,{},name]".format(ME, i),
+                                       check_files[i]['name'])
+                            to_outfile(_config, "{}[checks,{},lmod]".format(ME, i),
                                        str(int(os.stat(check_files[i]['name']).st_mtime)))
                             try:
                                 _checks.read_file(check_file)
@@ -534,9 +554,9 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                                     _d = {"{#SECTION}": section, "{#KEY}": key}
                                     objects_list.append(_d)
                                     LOGGER.info("%s: %s\n",
-                                                   key,
-                                                   sqls[0: 60].
-                                                   replace('\n', ' ').replace('\r', ' '))
+                                                key,
+                                                sqls[0: 60].
+                                                replace('\n', ' ').replace('\r', ' '))
                     # checks are loaded now.
                     sections_json = '{\"data\":'+json.dumps(sections_list)+'}'
                     LOGGER.debug("lld key: %s json: %s\n",
@@ -621,7 +641,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                                             for row in rows:
                                                 _d = collections.OrderedDict()
 
-                                                for col in range(0, len(_cursor.description)):
+                                                for col in range(len(_cursor.description)):
                                                     _d[_cursor.description[col]
                                                        [0]] = row[col]
                                                 objects_list.append(_d)
@@ -682,8 +702,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                                                    section + "," +
                                                    key + ",ela]", elapsed_s)
                                         LOGGER.info('key=%s.%s ZBXDB-%s: '
-                                                       'Db execution error: %s\n',
-                                                       section, key, ecode, emsg.strip())
+                                                    'Db execution error: %s\n',
+                                                    section, key, ecode, emsg.strip())
 
                                         if driver_errors.db_error_needs_new_session(db_driver,
                                                                                     ecode):
@@ -702,7 +722,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
 
                 _conn.commit()
 
-                LOGGER.debug("%s rolledback\n", ME)
+                LOGGER.debug("%s committed.\n", ME)
                 # dump metric for summed elapsed time of this run
                 to_outfile(_config, ME + "[query,,,ela]",
                            timer() - run_timer)
@@ -718,14 +738,14 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                     gc.collect()
                     # dump stats
                     LOGGER.info("connect %d times, %d fail; started %d queries, "
-                                   "%d fail memrss:%d user:%f sys:%f\n",
-                                   conn_counter, conn_errors, query_counter,
-                                   query_errors,
-                                   resource.getrusage(
-                                       resource.RUSAGE_SELF).ru_maxrss,
-                                   resource.getrusage(
-                                       resource.RUSAGE_SELF).ru_utime,
-                                   resource.getrusage(resource.RUSAGE_SELF).ru_stime)
+                                "%d fail memrss:%d user:%f sys:%f\n",
+                                conn_counter, conn_errors, query_counter,
+                                query_errors,
+                                resource.getrusage(
+                                    resource.RUSAGE_SELF).ru_maxrss,
+                                resource.getrusage(
+                                    resource.RUSAGE_SELF).ru_utime,
+                                resource.getrusage(resource.RUSAGE_SELF).ru_stime)
                 # try to keep activities on the same starting second:
                 sleep_time = 60 - ((int(time.time()) - start_time) % 60)
 
@@ -764,7 +784,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
 
 
 ME = os.path.splitext(os.path.basename(__file__))[0]
-setup_logging()
+LOG_CONF = setup_logging()
 LOGGER = logging.getLogger(__name__)
 
 if __name__ == '__main__':
