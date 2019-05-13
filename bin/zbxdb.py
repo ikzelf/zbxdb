@@ -260,6 +260,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
     _parser = ArgumentParser()
     _parser.add_argument("-c", "--cfile", dest="configfile", default=ME+".cfg",
                          help="Configuration file", metavar="FILE", required=True)
+    _parser.add_argument("-v", "--verbosity", action="count",
+                         help="increase output verbosity (no longer used)")
     _parser.add_argument("-p", "--parameter", action="store",
                          help="show parameter from configfile")
     _args = _parser.parse_args()
