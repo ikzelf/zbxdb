@@ -5083,7 +5083,7 @@ and &#13;
                             <expression>{template zbxDB:p_ts[{#PDB},{#TS_NAME},pctfreeMAX].timeleft(14d,,0)} &lt; 5d or {template zbxDB:p_ts[{#PDB},{#TS_NAME},pctfreeMAX].timeleft(14d,,0)} &gt;= 100d and {template zbxDB:p_ts[{#PDB},{#TS_NAME},pctfreeMAX].timeleft(7d,,0)} &lt; 5d or {template zbxDB:p_ts[{#PDB},{#TS_NAME},pctfreeMAX].timeleft(7d,,0)} &gt;= 100d and {template zbxDB:p_ts[{#PDB},{#TS_NAME},pctfreeMAX].timeleft(1d,,0)} &lt; 2d</expression>
                             <recovery_mode>0</recovery_mode>
                             <recovery_expression/>
-                            <name>p_ts[{#PDB}_{#TS_NAME}] loopt binnen 5d vol</name>
+                            <name>p_ts[{#PDB}_{#TS_NAME}] fills up within 5d</name>
                             <correlation_mode>0</correlation_mode>
                             <correlation_tag/>
                             <url/>
