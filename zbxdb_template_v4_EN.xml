@@ -3418,7 +3418,7 @@ current pct free &lt; minimum pct free of a week ago</description>
                             <expression>{template zbxDB:dgrp[{#DGRP},pctfree].timeleft(14d,,0)} &lt; 100d and {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(14d,,0)} &lt; 2d or {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(14d,,0)} &gt;= 100d and ( {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(7d,,0)} &lt; 100d and {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(7d,,0)} &lt; 2d or {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(7d,,0)} &gt;= 100d and ( {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(1d,,0)} &lt; 100d and {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(1d,,0)} &lt; 2d or {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(1d,,0)} &gt;= 100d and ( {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(6h,,0)} &lt; 100d and {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(6h,,0)} &lt; 2d)))</expression>
                             <recovery_mode>0</recovery_mode>
                             <recovery_expression/>
-                            <name>dg[{#DGRP} loopt binnen 2d vol</name>
+                            <name>dg[{#DGRP} fills up within 2d</name>
                             <correlation_mode>0</correlation_mode>
                             <correlation_tag/>
                             <url/>
@@ -3445,7 +3445,7 @@ or on last 6h &lt; 2d timeleft, the  trigger fires.</description>
                             <expression>{template zbxDB:dgrp[{#DGRP},pctfree].timeleft(14d,,0)} &lt; 100d and {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(14d,,0)} &lt; 14d or {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(14d,,0)} &gt;= 100d and ( {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(7d,,0)} &lt; 100d and {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(7d,,0)} &lt; 14d )</expression>
                             <recovery_mode>0</recovery_mode>
                             <recovery_expression/>
-                            <name>dg[{#DGRP} loopt binnen 14d vol</name>
+                            <name>dg[{#DGRP} fills up within 14d</name>
                             <correlation_mode>0</correlation_mode>
                             <correlation_tag/>
                             <url/>
