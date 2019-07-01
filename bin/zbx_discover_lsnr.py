@@ -3,6 +3,7 @@
    and send to zabbix"""
 import json
 import os
+from argparse import ArgumentParser
 
 # input file (no header)
 # DNSNAME:PORT
@@ -14,6 +15,14 @@ import os
 ME = os.path.splitext(os.path.basename(__file__))[0]
 CONFIG = ME + ".cfg"
 OUTPUT = ME + ".lld"
+_parser = ArgumentParser()
+_parser.add_argument("-c", "--cfile", dest="configfile", default=ME+".cfg",
+                     help="Configuration file", metavar="FILE")
+_parser.add_argument("-H", "--hostname", dest="hostname", required=True,
+                     help="hostname to receive the discovery array")
+_parser.add_argument("-k", "--key", dest="key", required=True,
+                     help="key for the discovery array")
+_args = _parser.parse_args()
 
 L = []
 with open(CONFIG, 'rt') as _f:
@@ -23,7 +32,8 @@ with open(CONFIG, 'rt') as _f:
         _e = {"{#DNSNAME}": dns, "{#PORT}": port}
         L.append(_e)
 
-LLD = '{\"data\":' + json.dumps(L) + '}'
+LLD = _args.hostname + " " + _args.key + \
+    " " + '{\"data\":' + json.dumps(L) + '}'
 
 F = open(OUTPUT, "w")
 F.write(LLD)
