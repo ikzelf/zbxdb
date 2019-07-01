@@ -18,11 +18,15 @@ OUTPUT = ME + ".lld"
 _parser = ArgumentParser()
 _parser.add_argument("-c", "--cfile", dest="configfile", default=ME+".cfg",
                      help="Configuration file", metavar="FILE")
+_parser.add_argument("-s", "--servername", dest="servername", default="localhost", required=False,
+                     help="zabbix server or proxy name")
+_parser.add_argument("-p", "--port", dest="port", default=10051, required=False,
+                     help="zabbix server or proxy name")
 _parser.add_argument("-H", "--hostname", dest="hostname", required=True,
                      help="hostname to receive the discovery array")
 _parser.add_argument("-k", "--key", dest="key", required=True,
                      help="key for the discovery array")
-_args = _parser.parse_args()
+ARGS = _parser.parse_args()
 
 L = []
 with open(CONFIG, 'rt') as _f:
@@ -32,9 +36,13 @@ with open(CONFIG, 'rt') as _f:
         _e = {"{#DNSNAME}": dns, "{#PORT}": port}
         L.append(_e)
 
-LLD = _args.hostname + " " + _args.key + \
+LLD = ARGS.hostname + " " + ARGS.key + \
     " " + '{\"data\":' + json.dumps(L) + '}'
 
 F = open(OUTPUT, "w")
 F.write(LLD)
 F.close()
+
+cmd = "zabbix_sender -z {} -p {} -i {} -r  -vv".format(
+    ARGS.servername, ARGS.port, OUTPUT)
+os.system(cmd)
