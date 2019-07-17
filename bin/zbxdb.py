@@ -298,6 +298,11 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
     LOGGER.info("%s found db_type=%s, driver %s; checking for driver\n",
                 ME,
                 _config['db_type'], _config['db_driver'])
+
+    if not os.path.exists(
+            os.path.join(_config['checks_dir'], _config['db_type'])):
+        raise ValueError("db_type "+_config['db_type'] +
+                         " does not exist in the "+_config['checks_dir']+" directory")
     db_driver = load_driver(_config)
     driver_errors = load_driver_errors(_config)
     db_connections = load_db_connections(_config)
