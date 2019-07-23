@@ -1,4 +1,18 @@
 """postgres specific implementations of zbxdb functions"""
+
+
+def current_role(conn, info):
+    """return current role of database"""
+    _c = conn.cursor()
+    _c.execute("select pg_is_in_recovery()")
+    _data = _c.fetchone()
+    _c.close()
+
+    if not _data[0]:
+        return "primary"
+    return "slave"
+
+
 def connection_info(conn):
     """get connection info from connected database"""
     conn_info = {'dbversion': "", 'sid': 0, 'instance_type': "rdbms",
@@ -23,14 +37,8 @@ def connection_info(conn):
     _c.execute("SELECT current_user")
     _data = _c.fetchone()
     conn_info['uname'] = _data[0]
-    _c.execute("select pg_is_in_recovery()")
-    _data = _c.fetchone()
 
-    if not _data[0]:
-        conn_info['db_role'] = "primary"
-    else:
-        conn_info['db_role'] = "slave"
-    _c.close()
+    conn_info['db_role'] = current_role(conn, conn_info)
 
     return conn_info
 

@@ -1,6 +1,25 @@
 """ mysql specific connection methods"""
 import pymysql
 
+def current_role(conn, info):
+    """return current role of database needs to be improved, I have no standby
+       config"""
+
+    _c = conn.cursor()
+    _c_role = ""
+    try:
+        _c.execute(
+            "select count(*) from performance_schema.replication_applier_status")
+        _data = _c.fetchone()
+
+        if _data[0] > 0:
+            _c_role = "slave"
+    except pymysql.ProgrammingError:
+        # a bit dirty ... assume primary replication_applier_status is pretty new
+        pass
+    _c.close()
+    _c_role = "primary"
+    return _c_role
 
 def connection_info(conn):
     """get connection info from connected database"""
@@ -20,16 +39,7 @@ def connection_info(conn):
     conn_info['iname'] = _data[0]
     conn_info['uname'] = _data[1]
 
-    try:
-        _c.execute(
-            "select count(*) from performance_schema.replication_applier_status")
-        _data = _c.fetchone()
-
-        if _data[0] > 0:
-            conn_info['db_role'] = "slave"
-    except pymysql.ProgrammingError:
-        # a bit dirty ... assume primary replication_applier_status is pretty new
-        pass
+    conn_info['db_role'] = current_role(conn)
 
     _c.close()
 

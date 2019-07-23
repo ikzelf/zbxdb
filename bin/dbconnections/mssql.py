@@ -1,6 +1,13 @@
 """ functions to return zbxdb info needed for mssql"""
 
 
+def current_role(*args):
+    """return current role of database needs to be improved, I have no standby
+       config"""
+
+    return "primary"
+
+
 def connection_info(conn):
     """get connection info from connected database"""
     conn_info = {'dbversion': "", 'sid': 0, 'instance_type': "rdbms",
@@ -24,6 +31,7 @@ cast(serverproperty('ProductVersion') as varchar)) - 1)""")
     conn_info['iname'] = data[0]
     conn_info['uname'] = data[1]
     _c.close()
+    conn_info['db_role'] = current_role(conn, conn_info)
 
     return conn_info
 

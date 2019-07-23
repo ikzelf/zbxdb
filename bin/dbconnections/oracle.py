@@ -4,6 +4,24 @@ import logging
 LOGGER = logging.getLogger(__name__)
 
 
+def current_role(conn, info):
+    """return current role of database"""
+
+    _c = conn.cursor()
+    _c_role = ""
+
+    if info['instance_type'] == "RDBMS":
+        _c.execute("""select database_role from v$database""")
+        _data = _c.fetchone()
+        _c_role = _data[0]
+    else:
+        # probably ASM or ASMPROXY
+        _c_role = info['instance_type']
+    _c.close()
+
+    return _c_role
+
+
 def connection_info(con):
     """get connection info from connected database"""
     conn_info = {'dbversion': "", 'sid': 0, 'instance_type': "rdbms",

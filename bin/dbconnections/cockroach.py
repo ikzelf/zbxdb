@@ -1,4 +1,12 @@
 """uniform connection methods for zbxdb"""
+
+
+def current_role(*args):
+    """cockroachDB has no standby"""
+
+    return "primary"
+
+
 def connection_info(conn):
     """get connection info from connected database"""
     conn_info = {'dbversion': "", 'sid': 0, 'instance_type': "rdbms",
@@ -25,10 +33,7 @@ def connection_info(conn):
     _c.execute("select pg_is_in_recovery()")
     _data = _c.fetchone()
 
-    if not _data[0]:
-        conn_info['db_role'] = "primary"
-    else:
-        conn_info['db_role'] = "slave"
+    conn_info['db_role'] = current_role(conn)
     _c.close()
 
     return conn_info

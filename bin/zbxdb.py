@@ -35,7 +35,7 @@ from timeit import default_timer as timer
 
 import sqlparse
 
-VERSION = "2.02"
+VERSION = "2.03"
 
 
 def setup_logging(
@@ -439,6 +439,14 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
 
             while True:
                 LOGGER.debug("%s while True\n", ME)
+
+                if connect_info['db_role'] != db_connections.current_role(_conn, connect_info):
+                    LOGGER.info("db_role changed from %s to %s",
+                                connect_info['db_role'],
+                                db_connections.current_role(_conn, connect_info))
+                    # re connect to get the correct monitoring config again
+
+                    break
                 # keep this to compare for when to dump stats
                 now_run = int(time.time())
                 run_timer = timer()  # keep this to compare for when to dump stats
@@ -760,6 +768,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                 time.sleep(sleep_time)
                 con_mins = con_mins + 1  # not really mins since the checks could
                 #                       have taken longer than 1 minute to complete
+            # end while True
         except (db_driver.DatabaseError, socket.timeout, ConnectionResetError) as dberr:
             err_code, err_msg = driver_errors.db_errorcode(db_driver, dberr)
             elapsed_s = timer() - _start
