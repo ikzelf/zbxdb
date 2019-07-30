@@ -165,6 +165,8 @@ and creates an empty file if it does not -yet- exist -anymore-. Since the zabbix
 alert log.xml runs in the zabbix account and not oracle, permissions are modified to 744.
 The lld array is sent to zabbix using zabbix-sender (and written to zbx_alertlog.lld)
 
+usage: zbx_alertlog.py [-h] [-o ORATAB] [-s SERVERNAME] [-p PORT] -H HOSTNAME -k KEY
+
 # modules
 # drivererrors
 Drivererrors has 2 entries:
