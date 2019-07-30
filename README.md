@@ -157,7 +157,13 @@ This is a bash script, that is replaced by zbxdb_sender.py that should also run 
 # zbx_discover_oradbs
 bash script that performs the Oracle database discovery. Place in in the crontab, for a few times a day, or run in manually on moments that you know a new database has been created, or removed.
 # zbx_alertlog.sh
-A bash script that runs as an user command, by the agent, that connects to all instances on the host and discovers all log.xml files for alert monitoring
+A bash script that runs as an user command, by the agent, that connects to all instances on the host and discovers all log.xml files for alert monitoring. Replaced by zbx_alertlog.py, that also runs on Windows.
+# zbx_alertlog.py
+A python script that is supposed to run on the Oracle database server. It connects to all detected instances,
+reads the v$diag_info for the correct log.xml location. zbx_alertlog.py also checks for existence of the log.xml
+and creates an empty file if it does not -yet- exist -anymore-. Since the zabbix agent that is going to read the
+alert log.xml runs in the zabbix account and not oracle, permissions are modified to 744.
+The lld array is sent to zabbix using zabbix-sender (and written to zbx_alertlog.lld)
 
 # modules
 # drivererrors
