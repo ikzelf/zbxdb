@@ -11,9 +11,15 @@ def current_role(conn, info):
     _c_role = ""
 
     if info['instance_type'] == "RDBMS":
-        _c.execute("""select database_role from v$database""")
-        _data = _c.fetchone()
-        _c_role = _data[0]
+        try:
+            _c.execute("""select database_role from v$database""")
+            _data = _c.fetchone()
+            _c_role = _data[0]
+        except conn.DatabaseError as dberr:
+            _error, = dberr.args
+            LOGGER.critical('determine db_role failed %s with %s',_error.code,
+                    dberr.args[0])
+            _c_role = 'notknown'
     else:
         # probably ASM or ASMPROXY
         _c_role = info['instance_type']
@@ -56,13 +62,12 @@ def connection_info(con):
                 "(grant create session, select any dictionary, oem_monitor)")
             raise
         else:
-            print(_error.code)
+            LOGGER.error('find conn_info failed %s with %s',_error.code,
+                    dberr.args[0])
             conn_info['dbversion'] = "unk"
 
     if conn_info['instance_type'] == "RDBMS":
-        _c.execute("""select database_role from v$database""")
-        _data = _c.fetchone()
-        conn_info['db_role'] = _data[0]
+        conn_info['db_role'] = current_role(con, conn_info)
     else:
         # probably ASM or ASMPROXY
         conn_info['db_role'] = conn_info['instance_type']
@@ -86,7 +91,15 @@ def connect(_db, _c):
 
     if _c['role'].upper() == "SYSDBA":
         _c['omode'] = _db.SYSDBA
-    _x = _db.connect(connect_string(_c), mode=_c['omode'])
-    _x.module = _c['ME']
+    LOGGER.info("Connecting %s as %s",
+            connect_string(_c).replace(_c['password'],'*X*X*X*'), _c['role'])
+    try:
+        _x = _db.connect(connect_string(_c), mode=_c['omode'])
+        _x.module = _c['ME']
+        return _x
+    except _db.DatabaseError as dberr:
+            _error, = dberr.args
+            LOGGER.critical("connect failed %s with %s",_error.code,
+                    dberr.args[0])
+            raise
 
-    return _x
