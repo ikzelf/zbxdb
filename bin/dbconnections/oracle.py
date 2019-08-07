@@ -17,8 +17,8 @@ def current_role(conn, info):
             _c_role = _data[0]
         except conn.DatabaseError as dberr:
             _error, = dberr.args
-            LOGGER.critical('determine db_role failed %s with %s',_error.code,
-                    dberr.args[0])
+            LOGGER.debug('determine db_role failed %s with %s', _error.code,
+                         dberr.args[0])
             _c_role = 'notknown'
     else:
         # probably ASM or ASMPROXY
@@ -57,13 +57,13 @@ def connection_info(con):
         if _error.code == 904:
             conn_info['dbversion'] = "pre9"
         elif _error.code == 942:
-            LOGGER.critical(
+            LOGGER.debug(
                 "Missing required privileges \n"
                 "(grant create session, select any dictionary, oem_monitor)")
             raise
         else:
-            LOGGER.error('find conn_info failed %s with %s',_error.code,
-                    dberr.args[0])
+            LOGGER.debug('find conn_info failed %s with %s', _error.code,
+                         dberr.args[0])
             conn_info['dbversion'] = "unk"
 
     if conn_info['instance_type'] == "RDBMS":
@@ -91,15 +91,19 @@ def connect(_db, _c):
 
     if _c['role'].upper() == "SYSDBA":
         _c['omode'] = _db.SYSDBA
-    LOGGER.info("Connecting %s as %s",
-            connect_string(_c).replace(_c['password'],'*X*X*X*'), _c['role'])
+    LOGGER.debug("Connecting %s as %s",
+                 connect_string(_c).replace(_c['password'], '*X*X*X*'), _c['role'])
     try:
         _x = _db.connect(connect_string(_c), mode=_c['omode'])
         _x.module = _c['ME']
+
         return _x
     except _db.DatabaseError as dberr:
-            _error, = dberr.args
-            LOGGER.critical("connect failed %s with %s",_error.code,
-                    dberr.args[0])
-            raise
+        _error, = dberr.args
 
+        if _error.code == 1031 and _c['omode'] in (_db.SYSASM, _db_SYSDBA):
+            LOGGER.warning("check orapw file[s]: ORA-%s: %s", _error.code,
+                           dberr.args[0])
+        LOGGER.debug("connect failed %s with %s", _error.code,
+                     dberr.args[0])
+        raise
