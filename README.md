@@ -13,22 +13,19 @@ value is detected.
 
 Tested with
 
-- Oracle 11, 12 RAC and single instance databases
+- Oracle 10, 11, 12 RAC and single instance databases
 - Oracle primary and standby databases
-- Oracle asm instances
+- Oracle asm, apx instances
 - Oracle plugin/multitenant databases
-- postgres 9
-- postgres 10
-- SQL Server 2012(11)
-- SQL Server 2016(13)
-- mysql 5
-- mysql 8
+- postgres 9, 10
+- SQL Server 2012(11), 2016(13)
+- mysql 5, 8
 - cockroachDB 2
 
 zbxdb is very cluster aware and will monitor the full cluster using a single connection to a single instance and monitor all databases served by that instance.
 
-Create a separate host for every Oracle database in zabbix.
-Create a separate host for every mssql instance in zabbix.
+Create a separate host for every Oracle database in zabbix (not for every instance of a RAC).
+Create a separate host for every mssql instance in zabbix (not for every datbase served by that instance).
 
 [getting started](doc/getting_started.md)
 
@@ -43,6 +40,8 @@ has(primary/slave/standby) and loads the {role}.{mainversion}.cfg file where the
 The sql's should return key/value pairs. In the template everything is written from an Oracle starters
 point and similar queries are defined for mssql and postgres, both using the same template, item
 prototypes and triggers.
+
+Did you create and test/use a new set of queries for a version or for a database not yet listed, please, feel free to share them, to make the supported list bigger. The fact that I did not list them here does not mean it can't be done. It just means that I have no access to them (and also no immediate need) but I would be happy to add.
 
 usage zbxdb.py - c configfile
 resulting in log to stdout and datafile in specified out_dir/{configfile}.zbx
@@ -72,12 +71,16 @@ section with 'discover' in their name have a special meaning, the return json ar
 - [SQL Server 2016](etc/zbxdb_checks/mssql/primary.13.cfg)
 - [Oracle 11g ASM](etc/zbxdb_checks/oracle/asm.11.cfg)
 - [Oracle 12c ASM](etc/zbxdb_checks/oracle/asm.12.cfg)
+- [Oracle 10g](etc/zbxdb_checks/oracle/primary.10.cfg)
 - [Oracle 11g](etc/zbxdb_checks/oracle/primary.11.cfg)
 - [Oracle 12c](etc/zbxdb_checks/oracle/primary.12.cfg)
+- [Oracle 10g standby](etc/zbxdb_checks/oracle/standby.10.cfg)
 - [Oracle 11g standby](etc/zbxdb_checks/oracle/standby.11.cfg)
 - [Oracle 12c standby](etc/zbxdb_checks/oracle/standby.12.cfg)
 - [postgres v9](etc/zbxdb_checks/postgres/primary.9.cfg)
+- [postgres v10](etc/zbxdb_checks/postgres/primary.10.cfg)
 - [postgres v9 slave](etc/zbxdb_checks/postgres/slave.9.cfg)
+- [postgres v10 slave](etc/zbxdb_checks/postgres/slave.10.cfg)
 - [mysql v5](etc/zbxdb_checks/mysql/primary.5.cfg)
 - [mysql v8](etc/zbxdb_checks/mysql/primary.8.cfg)
 
