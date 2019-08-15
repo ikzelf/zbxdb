@@ -302,6 +302,10 @@ grant select on sysjobactivity to[CISTATS]
 ```
 # postgreSQL
 ```
+create extension dblink;
+In order to be able to create a dblink, the contrib package must be installed on the dbserver[s] (postgresql9*-contrib).
+for collecting total dead and live tuples per database a temporary table and a dblink is used. 
+
 v9:
 create user cistats with superuser encrypted password 'knowoneknows'
 
@@ -309,4 +313,5 @@ v10 and later:
 create user cistats with encrypted password 'knowoneknows'
 GRANT pg_read_all_settings TO cistats
 GRANT pg_monitor to cistats
+GRANT TEMPORARY on DATABASE postgres TO cistats
 ```
