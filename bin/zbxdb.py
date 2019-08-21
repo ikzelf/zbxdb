@@ -35,7 +35,7 @@ from timeit import default_timer as timer
 
 import sqlparse
 
-VERSION = "2.04"
+VERSION = "2.05"
 
 
 def setup_logging(
@@ -711,7 +711,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                                                    section + "," +
                                                    key + ",fetch]", fetchela)
                                     # , zbx_exception) as dberr:
-                                    except (db_driver.DatabaseError) as dberr:
+                                    except (db_driver.DatabaseError,
+                                            socket.timeout) as dberr:
                                         if conn_has_cancel:
                                             sqltimeout.cancel()
                                         ecode, emsg = driver_errors.db_errorcode(
