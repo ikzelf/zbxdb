@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
  free clonable from https://github.com/ikzelf/zbxdb/
- (@) ronald.rood@ciber.nl follow @ik_zelf on twitter
+ (@) ronald.rood@gmail.com follow @ik_zelf on twitter
  follow @zbxdb on twitter
  push your added items/checks using git
  options: -c/--cfile configFile
@@ -35,7 +35,7 @@ from timeit import default_timer as timer
 
 import sqlparse
 
-VERSION = "2.03"
+VERSION = "2.04"
 
 
 def setup_logging(
@@ -260,8 +260,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
     _parser = ArgumentParser()
     _parser.add_argument("-c", "--cfile", dest="configfile", default=ME+".cfg",
                          help="Configuration file", metavar="FILE", required=True)
-    _parser.add_argument("-v", "--verbosity", action="count",
-                         help="increase output verbosity (no longer used)")
+    _parser.add_argument("-v", "--verbosity", action="count", default=0,
+                         help="increase output verbosity overriding the default")
     _parser.add_argument("-p", "--parameter", action="store",
                          help="show parameter from configfile")
     _args = _parser.parse_args()
@@ -279,9 +279,18 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                 _args.parameter, _config[_args.parameter]))
         sys.exit(0)
 
-    LOGGER.info("start python-%s %s-%s pid=%s Connecting ...\n",
-                platform.python_version(), ME, VERSION, os.getpid()
-                )
+    if _args.verbosity:
+        newLevel = logging.getLogger().getEffectiveLevel() - (_args.verbosity*10)
+
+        if newLevel < 0:
+            newLevel = 0
+        LOGGER.warning("Changing loglevel from %d to %d", logging.getLogger().getEffectiveLevel(),
+                       newLevel)
+        logging.getLogger().setLevel(newLevel)
+    LOGGER.debug("log level %d", logging.getLogger().getEffectiveLevel())
+    LOGGER.warning("start python-%s %s-%s pid=%s Connecting ...\n",
+                   platform.python_version(), ME, VERSION, os.getpid()
+                   )
 
     if _config['password']:
         LOGGER.warning(
@@ -295,9 +304,9 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
 # setting this defaulttimeout should speed this up
     socket.setdefaulttimeout(_config['sqltimeout']+3)
 
-    LOGGER.info("%s found db_type=%s, driver %s; checking for driver\n",
-                ME,
-                _config['db_type'], _config['db_driver'])
+    LOGGER.warning("%s found db_type=%s, driver %s; checking for driver\n",
+                   ME,
+                   _config['db_type'], _config['db_driver'])
 
     if not os.path.exists(
             os.path.join(_config['checks_dir'], _config['db_type'])):
