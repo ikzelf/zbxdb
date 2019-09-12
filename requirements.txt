@@ -1,5 +1,5 @@
 sqlparse>=0.2.4
 cx-Oracle>=6.1
 psycopg2>=2.7.5
-python-tds==1.9.1
+python-tds>=1.9.1
 PyMySQL>=0.9.2
