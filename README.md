@@ -161,6 +161,15 @@ This is a bash script, that is replaced by zbxdb_sender.py that should also run 
 bash script that performs the Oracle database discovery. Place in in the crontab, for a few times a day, or run in manually on moments that you know a new database has been created, or removed.
 # zbx_discover_oradbs.py - experimental
 python variant of the zbx_discover_oradbs bash script. It should be able to also discover windows machines. Requirement for that is that the remote powershell service is running. On Linux it runs wihout any problems and can replace zbx_discover_oradbs. Assuming ssh is configured with keys.
+## configuration file - csv file with header:
+```
+site;cluster;alert_group;protocol;user;password;password_enc;members
+cust01;;prod_alerts;ssh;;;;srv-db-01
+cust01;prod01;prod_alerts;ssh;;;;prod0101,prod0102,prod0103
+cust01;;;rdp;oracle;secret;;win00
+cust01;;;rdp;oracle;verysecret;;win01
+cust01;;;rdb;oracle;unknown;;wclu01,wclu02,wclu03
+```
 # zbx_alertlog.sh
 A bash script that runs as an user command, by the agent, that connects to all instances on the host and discovers all log.xml files for alert monitoring. Replaced by zbx_alertlog.py, that also runs on Windows.
 # zbx_alertlog.py
