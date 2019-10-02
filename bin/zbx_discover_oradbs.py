@@ -101,6 +101,7 @@ echo "dir=$dir"
 export ORACLE_HOME=$(dirname $dir)
 $ORACLE_HOME/bin/lsnrctl status
     """
+    errors = 0
     results = []
     for member in config['members'].split(','):
         ssh = subprocess.Popen(["ssh", "-q", member],
@@ -112,25 +113,35 @@ $ORACLE_HOME/bin/lsnrctl status
         err = std_err.decode()
         if err:
             print("get_ssh: {} -> err: {}".format(config, err), file=sys.stderr)
+            errors += 1
         results.append(res)
-    return config, results
+    return errors, config, results
 
 
 def get_psr(config):
 
+    errors = 0
     results = []
     for member in config['members'].split(','):
-        client = Client(member, ssl=False, auth="ntlm",
-                        cert_validation=False,
-                        username=config['user'], password=config['password'])
-        stdout, stderr, _rc = client.execute_cmd("lsnrctl status".encode())
-        res = stdout.decode()
-        err = stderr.decode()
-        if err:
-            print("get_psr: {} -> err: {}".format(config, err), file=sys.stderr)
+        res = ""
+        try:
+            client = Client(member, ssl=False, auth="ntlm",
+                            cert_validation=False,
+                            username=config['user'], password=config['password'])
+            stdout, stderr, _rc = client.execute_cmd("lsnrctl status".encode())
+            res = stdout.decode()
+            err = stderr.decode()
+            if err:
+                print("get_psr: {} -> err: {}".format(config, err), file=sys.stderr)
+                errors += 1
+        except Exception as e:
+            print("get_psr: Connect to {} failed: {}".format(member, e.args[0]),
+                  file=sys.stderr)
+            errors += 1
+
         results.append(res)
 
-    return config, results
+    return errors, config, results
 
 
 def main():
@@ -176,9 +187,14 @@ def main():
 
     databases = []
 
+    errors = 0
+
     for member in lsnrstats:
+        print("errors member {}: {}".format(member[1]['members'], member[0]))
+        errors += member[0]
+
         if _args.verbosity > 1:
-            print("member config {}".format(member[0]))
+            print("member config {}".format(member[1]))
         instances = []
 
         for lines in member[1]:
@@ -187,36 +203,36 @@ def main():
                     if "READY" in line:
                         if _args.verbosity > 2:
                             print("line: {}".format(line))
-                        instance = line.split('"')[1]
+                        instance = line.split('"')[2]
 
                         if _args.verbosity > 2:
                             print(instance)
                         instances.append(instance)
         sorti = sorted(list(set(instances)))
 
-        if member[0]['cluster']:
+        if member[1]['cluster']:
             if _args.verbosity > 1:
-                print("cluster {} {}".format(member[0]['cluster'], sorti))
+                print("cluster {} {}".format(member[1]['cluster'], sorti))
             dbs = set([i.rstrip('0123456789') for i in sorti])
 
         else:
             if _args.verbosity > 1:
-                print("node {} {}".format(member[0]['members'], sorti))
+                print("node {} {}".format(member[1]['members'], sorti))
             dbs = sorti
 
         dbs = [i.lstrip('-+') for i in dbs]
 
         for db in dbs:
-            _e = {"{#DB_NAME}": member[0]['site']+"_"+db}
+            _e = {"{#DB_NAME}": member[1]['site']+"_"+db}
 
-            if member[0]['cluster']:
+            if member[1]['cluster']:
                 _e.update(
-                    {"{#GROUP}": member[0]['site']+"_"+member[0]['cluster']})
+                    {"{#GROUP}": member[1]['site']+"_"+member[1]['cluster']})
             else:
-                _e.update({"{#GROUP}": member[0]['site']})
+                _e.update({"{#GROUP}": member[1]['site']})
 
             if member[0]['alert_group']:
-                _e.update({"{#ALERT}": member[0]['alert_group']})
+                _e.update({"{#ALERT}": member[1]['alert_group']})
             databases.append(_e)
 
     if _args.verbosity > 1:
@@ -224,17 +240,23 @@ def main():
 
     OUTPUT = _me + ".lld"
 
-    if _args.zabbix_host:
-        array = str(_args.zabbix_host) + ' ' + _args.lld_key + \
-            ' ' + '{\"data\":' + json.dumps(databases) + '}'
-        F = open(OUTPUT, "w")
-        F.write(array)
-        F.close()
-        CMD = "zabbix_sender -z {} -p {} -i {} -r  -vv".format(
-            _args.server, _args.port, OUTPUT)
-        os.system(CMD)
+    if errors == 0:
+        if _args.zabbix_host:
+            array = str(_args.zabbix_host) + ' ' + _args.lld_key + \
+                ' ' + '{\"data\":' + json.dumps(databases) + '}'
+            F = open(OUTPUT, "w")
+            F.write(array)
+            F.close()
+            CMD = "zabbix_sender -z {} -p {} -i {} -r  -vv".format(
+                _args.server, _args.port, OUTPUT)
+            os.system(CMD)
+        else:
+            print('{\"data\":' + json.dumps(databases) + '}')
     else:
-        print('{\"data\":' + json.dumps(databases) + '}')
+        print("had errors ({}), bailing out".format(errors), file=sys.stderr)
+        print('{\"data\":' + json.dumps(databases) + '}', file=sys.stderr)
+
+    sys.exit(errors)
 
 
 if __name__ == "__main__":
