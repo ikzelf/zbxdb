@@ -54,7 +54,7 @@ def get_config(filename, _me):
     if not os.path.exists(c_file):
         raise ValueError("Configfile " + c_file + " does not exist")
 
-    encryptedF = False
+    encryptedF = 0
     tempfile = NamedTemporaryFile(mode='w', delete=False)
     with open(c_file, 'r') as _inif, tempfile:
         reader = csv.DictReader(_inif, delimiter=';')
@@ -65,12 +65,14 @@ def get_config(filename, _me):
 
         for row in reader:
 
-            if row['password']:
-                # print("encrypting pwd for {} on {}".format(row['user'], row['members']))
-                row['password_enc'] = encrypted(row['password']).decode()
-                row['password'] = ''
-                # print("decrypted {}".format(decrypted(row['password_enc'])))
-                encryptedF = True
+            if row['site'] not in ["#", ""]:
+                if row['password']:
+                    # print("encrypting pwd for {} on {}".format(row['user'], row['members']))
+                    row['password_enc'] = encrypted(row['password']).decode()
+                    row['password'] = ''
+                    # print("decrypted {}".format(decrypted(row['password_enc'])))
+                    encryptedF += 1
+
             writer.writerow(row)
 
     if encryptedF:
@@ -84,10 +86,11 @@ def get_config(filename, _me):
 
         for row in reader:
 
-            if row['password_enc']:
-                # print("decrypting pwd for {} on {}".format(row['user'], row['members']))
-                row['password'] = decrypted(row['password_enc'])
-            config.append(row)
+            if row['site'] not in ["#", ""]:
+                if row['password_enc']:
+                    # print("decrypting pwd for {} on {}".format(row['user'], row['members']))
+                    row['password'] = decrypted(row['password_enc'])
+                config.append(row)
 
     return config
 
@@ -172,6 +175,8 @@ def main():
 
     lsnrstats = []
 
+    errors = 0
+
     for row in config:
         if row['protocol'] == "ssh":
             lsnrstats.append(get_ssh(row))
@@ -180,14 +185,12 @@ def main():
         else:
             print("unknown/implemented protocol {} supported (ssh/psr)".format(row['protocol']),
                   file=sys.stderr)
-            sys.exit(1)
+            errors += 1
 
     if _args.verbosity > 1:
         print(lsnrstats)
 
     databases = []
-
-    errors = 0
 
     for member in lsnrstats:
         print("errors member {}: {}".format(member[1]['members'], member[0]))
@@ -253,7 +256,8 @@ def main():
         else:
             print('{\"data\":' + json.dumps(databases) + '}')
     else:
-        print("had errors ({}), bailing out".format(errors), file=sys.stderr)
+        print("{} had errors ({}), bailing out".format(
+            _me, errors), file=sys.stderr)
         print('{\"data\":' + json.dumps(databases) + '}', file=sys.stderr)
 
     sys.exit(errors)
