@@ -46,7 +46,7 @@ def get_config(filename, _me):
     user = pwd.getpwuid(os.geteuid())
     home = user.pw_dir
 
-    if os.path.isabs(filename):
+    if os.path.isabs(filename) or os.path.isfile(filename):
         c_file = filename
     else:
         c_file = os.path.join(home, filename)
