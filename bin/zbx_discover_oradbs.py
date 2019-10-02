@@ -65,7 +65,7 @@ def get_config(filename, _me):
 
         for row in reader:
 
-            if row['site'] not in ["#", ""]:
+            if row['site'] and row['site'][0] not in ["#", ""]:
                 if row['password']:
                     # print("encrypting pwd for {} on {}".format(row['user'], row['members']))
                     row['password_enc'] = encrypted(row['password']).decode()
@@ -86,7 +86,7 @@ def get_config(filename, _me):
 
         for row in reader:
 
-            if row['site'] not in ["#", ""]:
+            if row['site'] and row['site'][0] not in ["#", ""]:
                 if row['password_enc']:
                     # print("decrypting pwd for {} on {}".format(row['user'], row['members']))
                     row['password'] = decrypted(row['password_enc'])
