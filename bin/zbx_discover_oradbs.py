@@ -6,10 +6,10 @@
    site         - somesite
    cluster      - in case of RAC
    alert_group
-   protocol     - ssh or rdp
+   protocol     - ssh or psr
    user         - optional for ssh
-   password     - plain text form of rdp password (removed during encryption)
-   password_enc - encrypted form of rdp password
+   password     - plain text form of psr password (removed during encryption)
+   password_enc - encrypted form of psr password
    machine[s]   - list of cluster members or single machine name
 
    run lsnrctl status on all machines and form the oradb.lld array
@@ -116,7 +116,7 @@ $ORACLE_HOME/bin/lsnrctl status
     return config, results
 
 
-def get_rdp(config):
+def get_psr(config):
 
     results = []
     for member in config['members'].split(','):
@@ -127,7 +127,7 @@ def get_rdp(config):
         res = stdout.decode()
         err = stderr.decode()
         if err:
-            print("get_rdp: {} -> err: {}".format(config, err), file=sys.stderr)
+            print("get_psr: {} -> err: {}".format(config, err), file=sys.stderr)
         results.append(res)
 
     return config, results
@@ -164,10 +164,10 @@ def main():
     for row in config:
         if row['protocol'] == "ssh":
             lsnrstats.append(get_ssh(row))
-        elif row['protocol'] == 'rdp':
-            lsnrstats.append(get_rdp(row))
+        elif row['protocol'] == 'psr':
+            lsnrstats.append(get_psr(row))
         else:
-            print("unknown/implemented protocol {}".format(row['protocol']),
+            print("unknown/implemented protocol {} supported (ssh/psr)".format(row['protocol']),
                   file=sys.stderr)
             sys.exit(1)
 
