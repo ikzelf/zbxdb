@@ -125,12 +125,23 @@ def get_psr(config):
 
     errors = 0
     results = []
+    try:
+        ssl = config['protocol'].split('/')[1]
+    except Exception as e:
+        ssl = ""
+    print("ssl:{}".format(ssl))
     for member in config['members'].split(','):
         res = ""
         try:
-            client = Client(member, ssl=False, auth="ntlm",
-                            cert_validation=False,
-                            username=config['user'], password=config['password'])
+            if ssl:
+                client = Client(member, ssl=True, auth="ntlm",
+                                cert_validation=False,
+                                username=config['user'], password=config['password'])
+            else:
+                client = Client(member, ssl=False, auth="ntlm",
+                                cert_validation=False,
+                                username=config['user'], password=config['password'])
+
             stdout, stderr, _rc = client.execute_cmd("lsnrctl status".encode())
             res = stdout.decode()
             err = stderr.decode()
@@ -180,10 +191,10 @@ def main():
     for row in config:
         if row['protocol'] == "ssh":
             lsnrstats.append(get_ssh(row))
-        elif row['protocol'] == 'psr':
+        elif row['protocol'] in ['psr', 'psr/ssl']:
             lsnrstats.append(get_psr(row))
         else:
-            print("unknown/implemented protocol {} supported (ssh/psr)".format(row['protocol']),
+            print("unknown/implemented protocol {} supported (ssh,psr[/ssl])".format(row['protocol']),
                   file=sys.stderr)
             errors += 1
 
