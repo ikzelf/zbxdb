@@ -8,6 +8,8 @@ file, else try's the first argument as ZBXDB_OUT
 Should work on *ux as wel as *dows (not tested on *dows)
 Since db monitoring should be done from a zabbix proxy or server, the server is
 hard defaulted as 127.0.0.1 10051 but can be overridden in the environment
+To enable sending to multiple servers added the plural form of ZABBIX_SERVER
+and ZABBIX_SERVER_PORT as comma separated lists
 """
 import os
 import shutil
@@ -17,7 +19,23 @@ import time
 import zipfile
 
 ZABBIX_SERVER = os.environ.get("ZABBIX_SERVER", "127.0.0.1")
+ZABBIX_SERVERS = os.environ.get("ZABBIX_SERVERS", ZABBIX_SERVER)
 ZABBIX_SERVER_PORT = os.environ.get("ZABBIX_SERVER_PORT", "10051")
+ZABBIX_SERVER_PORTS = os.environ.get("ZABBIX_SERVER_PORTS", ZABBIX_SERVER_PORT)
+
+s = ZABBIX_SERVERS.split(",")
+p = ZABBIX_SERVER_PORTS.split(",")
+
+print("ZABBIX_SERVERS {} ZABBIX_SERVER_PORTS {}".format(ZABBIX_SERVERS,
+                                                        ZABBIX_SERVER_PORTS))
+
+if len(s) > len(p):
+    for i in range(len(p), len(s)):
+        p.append(p[0])
+
+if len(p) > len(s):
+    for i in range(len(s), len(p)):
+        s.append(s[0])
 
 ME = os.path.splitext(os.path.basename(__file__))[0]
 HOME = os.path.expanduser("~")
@@ -27,6 +45,7 @@ NOWD = time.strftime("%a")
 # used to check for 1st run of the day (truncate)
 NOWM = time.strftime("%H%M")
 NOWDLOG = os.path.join(HOME, "log", ME+"."+NOWD+".log")
+print("Logging to {}".format(NOWDLOG))
 
 ZBXDB_OUT = None
 
@@ -45,7 +64,7 @@ Usage {} [ZBXDB_OUT]
    using {} directory in {} for work space
    using log directory in {} for logging
    sending to ZABBIX_SERVER {} on ZABBIX_SERVER_PORT {}
-   """.format(ME, ME, ME, ME, HOME, HOME, ZABBIX_SERVER, ZABBIX_SERVER_PORT), file=sys.stderr)
+   """.format(ME, ME, ME, ME, HOME, HOME, ZABBIX_SERVERS, ZABBIX_SERVER_PORTS), file=sys.stderr)
     sys.exit(1)
 
 if os.geteuid() == 0:
@@ -89,21 +108,23 @@ for f in sorted(os.listdir(TMPIN)):
     print("{} processing {}".format(NOW, f), file=LOGF)
     # 1 file at a time. Since zabbix v4 the limit of what can be sent in one
     # run is reduced a lot. Concatenation will give problems.
-    process = subprocess.Popen(["zabbix_sender -z {} -p {} -T -i {} -vv"
-                                .format(
-                                    ZABBIX_SERVER,
-                                    ZABBIX_SERVER_PORT,
-                                    os.path.join(TMPIN, f))],
-                               shell=True,
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE,
-                               close_fds=True)
-    output = process.stdout.read().decode()
-    err = process.stderr.read().decode()
-    exit_code = process.wait()
-    print("{} {} zabbix_sender rc: {}".format(NOW, f, exit_code), file=LOGF)
-    print("{} output {}: {}".format(NOW, f, output), file=LOGF)
-    print("{} stderr {}: {}".format(NOW, f, err), file=LOGF)
+    for server, port in zip(s, p):
+        process = subprocess.Popen(["zabbix_sender -z {} -p {} -T -i {} -vv"
+                                    .format(
+                                        server,
+                                        port,
+                                        os.path.join(TMPIN, f))],
+                                   shell=True,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE,
+                                   close_fds=True)
+        output = process.stdout.read().decode()
+        err = process.stderr.read().decode()
+        exit_code = process.wait()
+        print("{} {} zabbix_sender {}:{} rc: {}".format(
+            NOW, f, server, port, exit_code), file=LOGF)
+        print("{} output {}: {}".format(NOW, f, output), file=LOGF)
+        print("{} stderr {}: {}".format(NOW, f, err), file=LOGF)
 
     with zipfile.ZipFile(os.path.join(ARCHIVE, "zbx_{}.zip".format(NOW)),
                          "a", zipfile.ZIP_DEFLATED) as zipf:
