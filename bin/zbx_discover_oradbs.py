@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """call request listener sid list from all listeners given in config file
    to generate discovery array for oradb.lld
    config file csv format is:
@@ -15,10 +15,14 @@
    run lsnrctl status on all machines and form the oradb.lld array
    """
 
+# should work with python 2.7 and 3
+from __future__ import print_function
+
 import base64
 import csv
 import json
 import os
+import platform
 import pwd
 import shutil
 import subprocess
@@ -27,6 +31,8 @@ from argparse import ArgumentParser
 from tempfile import NamedTemporaryFile
 
 from pypsrp.client import Client
+from pypsrp.shell import Process, SignalCode, WinRS
+from pypsrp.wsman import WSMan
 
 
 def encrypted(plain):
@@ -129,27 +135,78 @@ def get_psr(config):
         ssl = config['protocol'].split('/')[1]
     except Exception as e:
         ssl = ""
-    print("ssl:{}".format(ssl))
     for member in config['members'].split(','):
         res = ""
         try:
             if ssl:
                 client = Client(member, ssl=True, auth="ntlm",
                                 cert_validation=False,
+                                connection_timeout=3,
                                 username=config['user'], password=config['password'])
             else:
                 client = Client(member, ssl=False, auth="ntlm",
                                 cert_validation=False,
+                                connection_timeout=3,
                                 username=config['user'], password=config['password'])
 
-            stdout, stderr, _rc = client.execute_cmd("lsnrctl status".encode())
-            res = stdout.decode()
-            err = stderr.decode()
+            stdout, stderr, _rc = client.execute_cmd(REMCMD)
+            if "decode" in dir(stdout):
+                res = stdout.decode()
+                err = stderr.decode()
+            else:
+                res = stdout
+                err = stderr
             if err:
                 print("get_psr: {} -> err: {}".format(config, err), file=sys.stderr)
                 errors += 1
         except Exception as e:
             print("get_psr: Connect to {} failed: {}".format(member, e.args[0]),
+                  file=sys.stderr)
+            errors += 1
+
+        results.append(res)
+
+    return errors, config, results
+
+
+def get_winRS(config):
+
+    errors = 0
+    results = []
+    try:
+        ssl = config['protocol'].split('/')[1]
+    except Exception as e:
+        ssl = ""
+    for member in config['members'].split(','):
+        res = ""
+        try:
+            if ssl:
+                client = WSMan(member, ssl=True, auth="ntlm",
+                               cert_validation=False,
+                               connection_timeout=3,
+                               username=config['user'], password=config['password'])
+            else:
+                client = WSMan(member, ssl=False, auth="ntlm",
+                               cert_validation=False,
+                               connection_timeout=3,
+                               username=config['user'], password=config['password'])
+
+            with WinRS(client) as shell:
+                process = Process(shell, REMCMD)
+                print(process)
+                stdout, stderr, _rc = process.invoke()
+            if "decode" in dir(stdout):
+                res = stdout.decode()
+                err = stderr.decode()
+            else:
+                res = stdout
+                err = stderr
+            if err:
+                print("get_winRS: {} -> err: {}".format(config, err),
+                      file=sys.stderr)
+                errors += 1
+        except Exception as e:
+            print("get_winRS: Connect to {} failed: {}".format(member, e.args[0]),
                   file=sys.stderr)
             errors += 1
 
@@ -193,8 +250,10 @@ def main():
             lsnrstats.append(get_ssh(row))
         elif row['protocol'] in ['psr', 'psr/ssl']:
             lsnrstats.append(get_psr(row))
+        elif row['protocol'] in ['winRS', 'winRS/ssl']:
+            lsnrstats.append(get_winRS(row))
         else:
-            print("unknown/implemented protocol {} supported (ssh,psr[/ssl])".format(row['protocol']),
+            print("unknown/implemented protocol {} supported (ssh,psr[/ssl],winRS[/ssl])".format(row['protocol']),
                   file=sys.stderr)
             errors += 1
 
@@ -275,4 +334,10 @@ def main():
 
 
 if __name__ == "__main__":
+    remcmd = "lsnrctl status"
+
+    if int(platform.python_version().split('.')[0]) < 3:
+        REMCMD = remcmd.decode()
+    else:
+        REMCMD = remcmd
     main()
