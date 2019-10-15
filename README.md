@@ -315,7 +315,9 @@ grant select on sysjobactivity to[CISTATS]
 ```
 create extension dblink;
 In order to be able to create a dblink, the contrib package must be installed on the dbserver[s] (postgresql9*-contrib).
-for collecting total dead and live tuples per database a temporary table and a dblink is used. 
+for collecting total dead and live tuples per database a temporary table and a dblink is used. The queries
+	for this collection use a construction for which postgres - sadly enough - requires superuser to do that
+		without password. I am very open for tips to make this better, without a superuser account.
 
 v9:
 create user cistats with superuser encrypted password 'knowoneknows'
@@ -325,4 +327,8 @@ create user cistats with encrypted password 'knowoneknows'
 GRANT pg_read_all_settings TO cistats
 GRANT pg_monitor to cistats
 GRANT TEMPORARY on DATABASE postgres TO cistats
+
+If you need statistics like live/dead tuples per database a dblink is used. To use this without password the
+user needs to be superuser. Sad enough.
+aler user cistats with superuser;
 ```
