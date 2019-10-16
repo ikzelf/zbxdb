@@ -47,9 +47,16 @@ def connect_string(_c):
 def connect(_db, _c):
     """the actual connect, also specifying the appname"""
 
+    auth = None
+    if _c['db_driver'] == "pytds":
+        import pytds.login
+        if '\\' in _c['username']:
+            auth = pytds.login.NtlmAuth(_c['username'],_c['password'])
+
     return _db.connect(server=_c['server'],
                        database=_c['db_name'],
                        port=_c['server_port'],
+                       auth=auth,
                        user=_c['username'],
                        password=_c['password'],
                        timeout=_c['sqltimeout'],
