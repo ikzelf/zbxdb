@@ -18,7 +18,7 @@ Tested with
 - Oracle asm, apx instances
 - Oracle plugin/multitenant databases
 - postgres 9, 10, 11
-- SQL Server 2012(11), 2016(13)
+- SQL Server 2008(10), 2012(11), 2016(13)
 - mysql 5, 8
 - cockroachDB 2
 
