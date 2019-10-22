@@ -28,7 +28,7 @@ def db_errorcode(driver, excep):
         return fullname(excep), str(excep.args[0])
     _error, = excep.args
 
-    return _error.code, str(excep.args[0])
+    return _error, str(excep.args[0])
 
 
 def db_error_needs_new_session(driver, code):
