@@ -710,9 +710,9 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                                         to_outfile(_config, ME + "[query," +
                                                    section + "," +
                                                    key + ",fetch]", fetchela)
-                                    # , zbx_exception) as dberr:
-                                    except (db_driver.DatabaseError,
-                                            socket.timeout) as dberr:
+                                    # except (db_driver.DatabaseError,
+                                        # socket.timeout) as dberr:
+                                    except Exception as dberr:
                                         if conn_has_cancel:
                                             sqltimeout.cancel()
                                         ecode, emsg = driver_errors.db_errorcode(
@@ -779,7 +779,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                 con_mins = con_mins + 1  # not really mins since the checks could
                 #                       have taken longer than 1 minute to complete
             # end while True
-        except (db_driver.DatabaseError, socket.timeout, ConnectionResetError) as dberr:
+        # except (db_driver.DatabaseError, socket.timeout, ConnectionResetError) as dberr:
+        except Exception as dberr:
             err_code, err_msg = driver_errors.db_errorcode(db_driver, dberr)
             elapsed_s = timer() - _start
             to_outfile(_config, ME + "[connect,status]", err_code)
