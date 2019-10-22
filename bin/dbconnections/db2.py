@@ -1,4 +1,4 @@
-""" oracle specific connection methods"""
+""" db2 specific connection methods"""
 import logging
 
 LOGGER = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ def connection_info(con):
     conn_info['instance_type'] = "rdbms"
     conn_info['iname'] = _data[1]
     conn_info['uname'] = _data[2]
-    conn_info['db_role'] =  "primary"
+    conn_info['db_role'] =  current_role(con, conn_info)
 
     _c.close()
 

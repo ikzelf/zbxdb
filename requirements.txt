@@ -4,3 +4,5 @@ psycopg2>=2.7.5
 python-tds>=1.9.1
 PyMySQL>=0.9.2
 pypsrp>=0.4.0
+sqlanydb>=1.0.10
+ibm-db>=3.0.1
