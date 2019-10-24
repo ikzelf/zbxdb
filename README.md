@@ -286,9 +286,9 @@ grant create session, select any dictionary, oem_monitor to cistats
 # Oracle multitenant
 In Oracle 12 or later - when using pluggable database, in the root container, create a common user:
 ```
-create user c  # cistats identified by knowoneknows;
-alter user c  # cistats set container_data all container = current;
-grant create session, select any dictionary, oem_monitor, dv_monitor to c  # cistats;
+create user c##cistats identified by knowoneknows;
+alter user c##cistats set container_data all container = current;
+grant create session, select any dictionary, oem_monitor, dv_monitor to c##cistats;
 ```
 # SQLserver
 ```
@@ -315,9 +315,8 @@ grant select on sysjobactivity to[CISTATS]
 ```
 create extension dblink;
 In order to be able to create a dblink, the contrib package must be installed on the dbserver[s] (postgresql9*-contrib).
-for collecting total dead and live tuples per database a temporary table and a dblink is used. The queries
-	for this collection use a construction for which postgres - sadly enough - requires superuser to do that
-		without password. I am very open for tips to make this better, without a superuser account.
+for collecting total dead and live tuples per database a temporary table and a dblink is used. The queries for this collection use a construction for which postgres - sadly enough - requires superuser to do that without password. 
+I am very open for tips to make this better, without a superuser account.
 
 v9:
 create user cistats with superuser encrypted password 'knowoneknows'
@@ -330,5 +329,5 @@ GRANT TEMPORARY on DATABASE postgres TO cistats
 
 If you need statistics like live/dead tuples per database a dblink is used. To use this without password the
 user needs to be superuser. Sad enough.
-aler user cistats with superuser;
+alter user cistats with superuser;
 ```
