@@ -10,3 +10,5 @@ etc/zbxdb.adb01_prod01.cfg
 etc/zbxdb.CLU-DC2-007_INSTANCE4.cfg
 etc/zbxdb.SRV-OTA-027_PTVLO.cfg
 etc/z.cfg
+bin/testje.py
+db2.cfg
