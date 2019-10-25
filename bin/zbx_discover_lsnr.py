@@ -38,8 +38,7 @@ with open(CONFIG, 'rt') as _f:
         _e = {"{#DNSNAME}": dns, "{#PORT}": port}
         L.append(_e)
 
-LLD = ARGS.hostname + " " + ARGS.key + \
-    " " + '{\"data\":' + json.dumps(L) + '}'
+LLD = '\"' + ARGS.hostname + '\" \"' + ARGS.key + '\" ' + '{\"data\":' + json.dumps(L) + '}'
 
 F = open(OUTPUT, "w")
 F.write(LLD)
