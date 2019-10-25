@@ -26,7 +26,7 @@ def db_errorcode(driver, excep):
 
     if fullname(excep) == "ConnectionResetError":
         return fullname(excep), str(excep.args[0])
-    _error, = excep.args
+    _error = driver.stmt_error()
 
     return _error, str(excep.args[0])
 
