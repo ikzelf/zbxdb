@@ -34,7 +34,7 @@ def connection_info(conn):
 
     conn_info['dbversion'] = _data[0]
 
-    _c.execute("select concat(@@basedir,':',@@port), current_user()")
+    _c.execute("select concat(@@datadir,':',@@port), current_user()")
     _data = _c.fetchone()
     conn_info['iname'] = _data[0]
     conn_info['uname'] = _data[1]
