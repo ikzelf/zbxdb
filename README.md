@@ -331,3 +331,10 @@ If you need statistics like live/dead tuples per database a dblink is used. To u
 user needs to be superuser. Sad enough.
 alter user cistats with superuser;
 ```
+# mysql
+```
+grant SELECT, REPLICATION CLIENT, SHOW DATABASES, SUPER, PROCESS
+  ON *.*
+  TO  'cistats'@'localhost'
+  IDENTIFIED BY 'knowoneknows';
+```
