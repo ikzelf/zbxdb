@@ -39,7 +39,7 @@ def connection_info(conn):
     conn_info['iname'] = _data[0]
     conn_info['uname'] = _data[1]
 
-    conn_info['db_role'] = current_role(conn)
+    conn_info['db_role'] = current_role(conn, conn_info)
 
     _c.close()
 
