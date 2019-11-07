@@ -57,4 +57,7 @@ def connect(_db, _c):
                  connect_string(_c).replace(_c['password'], '*X*X*X*'),'user')
 
     con = _db.pconnect(connect_string(_c),"","")
-    return ibm_db_dbi.Connection(con)
+    conn = ibm_db_dbi.Connection(con)
+    LOGGER.error(_db)
+    LOGGER.error(dir(_db))
+    return conn
