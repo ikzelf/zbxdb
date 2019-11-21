@@ -287,7 +287,7 @@ grant create session, select any dictionary, oem_monitor to cistats
 In Oracle 12 or later - when using pluggable database, in the root container, create a common user:
 ```
 create user c##cistats identified by knowoneknows;
-alter user c##cistats set container_data all container = current;
+alter user c##cistats set container_data = all container = current;
 grant create session, select any dictionary, oem_monitor, dv_monitor to c##cistats;
 ```
 # SQLserver
