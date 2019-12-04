@@ -13,7 +13,7 @@ value is detected.
 
 Tested with
 
-- Oracle 10, 11, 12 RAC and single instance databases
+- Oracle 10, 11, 12, 18 RAC and single instance databases (probably also running on older versions)
 - Oracle primary and standby databases
 - Oracle asm, apx instances
 - Oracle plugin/multitenant databases
