@@ -35,7 +35,7 @@ from timeit import default_timer as timer
 
 import sqlparse
 
-VERSION = "2.05"
+VERSION = "2.06"
 
 
 def setup_logging(
@@ -144,6 +144,7 @@ def get_config(filename, _me):
               'username': "scott", 'password': "", 'role': "normal", 'omode': 0,
               'out_dir': "", 'out_file': "", 'hostname': "", 'checks_dir': "",
               'site_checks': "", 'password_enc': "", 'OUTF': 0, 'ME': _me,
+              'cafile': "",
               'section': "", 'key': "",
               'sqltimeout': 60.0}
     _config = MyConfigParser()

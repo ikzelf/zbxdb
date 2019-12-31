@@ -23,6 +23,10 @@ def db_errorcode(driver, excep):
         return excep.msg_no, excep.args[0]
     if "ConnectionResetError" in str(type(excep)):
         return "ConnectionResetError", str(excep.args[0])
+    if "FileNotFoundError" in str(type(excep)):
+        return "FileNotFoundError", str(excep.args[0])
+    if "OpenSSL.SSL.Error" in str(type(excep)):
+        return "OpenSSL.SSL.Error", str(excep.args[0])
     if "timed out" == str(excep.args[0]):
         return fullname(excep), excep.args[0]
     LOGGER.debug('db_errorcode: %s\n', excep)

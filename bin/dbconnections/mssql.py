@@ -1,4 +1,8 @@
 """ functions to return zbxdb info needed for mssql"""
+import logging
+import os
+
+LOGGER = logging.getLogger(__name__)
 
 
 def current_role(*args):
@@ -48,15 +52,34 @@ def connect(_db, _c):
     """the actual connect, also specifying the appname"""
 
     auth = None
+
     if _c['db_driver'] == "pytds":
         import pytds.login
+
         if '\\' in _c['username']:
-            auth = pytds.login.NtlmAuth(_c['username'],_c['password'])
+            auth = pytds.login.NtlmAuth(_c['username'], _c['password'])
+    cafile = None
+
+    if _c['cafile']:
+        cafile = _c['cafile']
+        LOGGER.warning("Enable tls encryption with cafile=%s", cafile)
+        try:
+            x = open(cafile,'r')
+            x.close()
+            try:
+                import OpenSSL
+            except ModuleNotFoundError:
+                LOGGER.fatal("pyOpenSSL not installed")
+                raise
+        except FileNotFoundError:
+            LOGGER.fatal("cafile=%s does not exist or not readable", cafile)
+            raise
 
     return _db.connect(server=_c['server'],
                        database=_c['db_name'],
                        port=_c['server_port'],
                        auth=auth,
+                       cafile=cafile,
                        user=_c['username'],
                        password=_c['password'],
                        timeout=_c['sqltimeout'],
