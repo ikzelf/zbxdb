@@ -80,6 +80,11 @@ if not os.access(ZBXDB_OUT, os.W_OK):
           file=sys.stderr)
     sys.exit(1)
 
+if not shutil.which('zabbix_sender'):
+    print("{} needs zabbix_sender in PATH".format(ME),
+          file=sys.stderr)
+    sys.exit(1)
+
 if NOWM == "0001":
     LOGF = open(NOWDLOG, 'w')
 else:
