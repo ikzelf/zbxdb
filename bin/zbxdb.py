@@ -35,7 +35,7 @@ from timeit import default_timer as timer
 
 import sqlparse
 
-VERSION = "2.06"
+VERSION = "2.07"
 
 
 def setup_logging(
@@ -448,6 +448,9 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
             open_time = int(time.time())
 
             while True:
+                if not os.path.exists(_args.configfile):
+                    LOGGER.warning("Config file (%s) gone ... time to quit", _args.configfile)
+                    sys.exit(0)
                 LOGGER.debug("%s while True\n", ME)
 
                 if connect_info['db_role'] != db_connections.current_role(_conn, connect_info):
@@ -784,7 +787,11 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
         except Exception as dberr:
             err_code, err_msg = driver_errors.db_errorcode(db_driver, dberr)
             elapsed_s = timer() - _start
-            to_outfile(_config, ME + "[connect,status]", err_code)
+            if err_code == 0:
+                # something fishy happened .... driver problems?
+                to_outfile(_config, ME + "[connect,status]", err_msg[:200])
+            else:
+                to_outfile(_config, ME + "[connect,status]", err_code)
 
             if not driver_errors.db_error_needs_new_session(db_driver, err_code):
                 # from a killed session, crashed instance or similar
