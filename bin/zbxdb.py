@@ -808,7 +808,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                     # don't sleep longer than 5 mins after connect failures
                     sleep_s += 10
                 sleep_c = 0
-            LOGGER.warning('(%d.%d)connection error: [%s] %s for %s@%s\n',
+            LOGGER.error('(%d.%d)connection error: [%s] %s for %s@%s\n',
                            sleep_c, sleep_s, err_code,
                            err_msg.strip().replace('\n', ' ').replace('\r', ' '),
                            _config['username'], _config['db_url'])
