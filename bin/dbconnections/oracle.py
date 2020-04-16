@@ -104,6 +104,6 @@ def connect(_db, _c):
         if _error.code == 1031 and _c['omode'] in (_db.SYSASM, _db_SYSDBA):
             LOGGER.warning("check orapw file[s]: ORA-%s: %s", _error.code,
                            dberr.args[0])
-        LOGGER.ERROR("connect failed %s with %s", _error.code,
+        LOGGER.error("connect failed %s with %s", _error.code,
                      dberr.args[0])
         raise
