@@ -793,6 +793,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
             else:
                 to_outfile(_config, ME + "[connect,status]", err_code)
 
+
             if not driver_errors.db_error_needs_new_session(db_driver, err_code):
                 # from a killed session, crashed instance or similar
                 conn_errors += 1
@@ -814,6 +815,9 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                            _config['username'], _config['db_url'])
             # set_trace()
             time.sleep(sleep_s)
+        # uptime is used for nodata item .... so also give when not
+        # connected
+        to_outfile(_config, ME + "[uptime]", int(time.time() - start_time))
         except (KeyboardInterrupt, SystemExit):
             exit(0)
 
