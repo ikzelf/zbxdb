@@ -811,11 +811,11 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                            sleep_c, sleep_s, err_code,
                            err_msg.strip().replace('\n', ' ').replace('\r', ' '),
                            _config['username'], _config['db_url'])
+            # uptime is used for nodata item .... so also give when not
+            # connected
+            to_outfile(_config, ME + "[uptime]", int(time.time() - start_time))
             # set_trace()
             time.sleep(sleep_s)
-        # uptime is used for nodata item .... so also give when not
-        # connected
-        to_outfile(_config, ME + "[uptime]", int(time.time() - start_time))
         except (KeyboardInterrupt, SystemExit):
             exit(0)
 
