@@ -23,6 +23,8 @@ def db_errorcode(driver, excep):
         return excep.msg_no, excep.args[0]
     if "ConnectionResetError" in str(type(excep)):
         return "ConnectionResetError", str(excep.args[0])
+    if "ClosedConnectionError" in str(type(excep)):
+        return "ClosedConnectionError", str(excep.args[0])
     if "FileNotFoundError" in str(type(excep)):
         return "FileNotFoundError", str(excep.args[0])
     if "OpenSSL.SSL.Error" in str(type(excep)):
