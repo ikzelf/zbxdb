@@ -28,6 +28,7 @@ Create a separate host for every Oracle database in zabbix (not for every instan
 Create a separate host for every mssql instance in zabbix (not for every datbase served by that instance).
 
 [getting started](doc/getting_started.md)
+[trouble shooting](doc/trouble_shooting.md)
 
 # Adding more db support
 Very simple: give the dbtype a name and select a driver name for it. Ad the {dbtype}.py to the
@@ -104,13 +105,13 @@ When using this configfile(zbxdb.py - c etc/zbxdb.odb.cfg)
 zbxdb.py will read the configfile
 and try to connect to the database using db_url
 If all parameters are correct zbxdb will keep looping forever.
-Using the site_checks as shown, zbxdb tries to find them in `checks_dir`/`db_type`/ sap.cfg
-and in `checks_dir`/`db_type`/ ebs.cfg(just specify a comma separated list for this)
+Using the site_checks as shown, zbxdb tries to find them in `checks_dir/db_type/sap.cfg
+and in checks_dir/db_type/ebs.cfg (just specify a comma separated list for this if you have multiple files)
 Outputfile containing the metrics is created in out_dir/zbxdb.odb.zbx
 
 After having connected to the specified service, zbxdb finds out the instance_type and version,
 after which the database_role is determined, if applicable.
-Using these parameters the correct `checks_dir`/`db_type`/ {role}.{version}.cfg file is chosen. For a regular database this translates to 'primary.{version}.cfg'
+Using these parameters the correct checks_dir/db_type/{role}.{version}.cfg file is chosen. For a regular database this translates to 'primary.{version}.cfg'
 
 After having read the checks_files, a lld array containing the queries is written before
 monitoring starts. When monitoring starts, first the * discovery * section is executed.
@@ -119,7 +120,7 @@ This is to discover the instances, tablespaces, diskgroups, or whatever you want
 zbxdb also keeps track of the used queries.
 zbxdb executes queries and expects them to return a valid zabbix_key and values. The zabbix_key that the queries return should be known in zabbix in your zabbix_host(or be discovered by a preceding lld query in a * discover * section)
 
-If a database goes down, zbxdb will try to reconnect until killed. When a new connection is tried, zbxdb reads the config file, just in case there was a change. If a checks file in use is changed, zbxdb re-reads the file and logs about this.
+If a database goes down, zbxdb will try to reconnect until killed or the cfg file is removed. When a new connection is tried, zbxdb reads the config file, just in case there was a change. If a checks file in use is changed, zbxdb re-reads the file and logs about this.
 
 zbxdb's time is mostly spent sleeping. It wakes-up every minute and checks if a
 section has to be executed or not. Every section contains a minutes: X parameter that
@@ -139,28 +140,25 @@ implemented as a service that auto starts.
 # Enclosed tools:
 # zbxdb_starter
 this is an aide to[re]start zbxdb in an orderly way. Put it in the crontab, every minute.
-It will check the etc directory(note the lack of a leading '/') and start the configuration
+It will check the etc directory (note the lack of a leading '/') and start the configuration
 files named etc/zbxdb.{your_config}.cfg, each given their own logfile. Notice the sleep in the start
 sequence. This is done to make sure not all concurrently running zbxdb sessions awake at
 the same moment. Now their awakenings is separated by a second. This makes that if running
 10 monitors, they are executing their checks one after an other.
 **Schedule this in the crontab, every minute.**
 Make sure that ZBXDB_HOME is defined in your .bash_profile and also add the location of zbxdb.py to
-your PATH. In my case: PATH =$HOME/zbxdb/bin: $PATH
+your PATH. In my case: PATH=$HOME/zbxdb/bin:$PATH
 # zbxdb_stop
 Just to stop all currently running zbxdb.py scripts for the user.
 
-# zbxdb_sender[.py]
+# zbxdb_sender.py
 this is used to really send the data to zabbix. Could be zabbix server, could be zabbix proxy, only
 depending on the location of your monitoring host. It collects the files from the out_dir and
 sends them in one session. Doing so makes the process pretty efficient, at the cost of a small delay.
-This is a bash script, that is replaced by zbxdb_sender.py that should also run on Windows
 **Schedule this in the crontab, every minute.**
 
-# zbx_discover_oradbs
-bash script that performs the Oracle database discovery. Place in in the crontab, for a few times a day, or run in manually on moments that you know a new database has been created, or removed.
-# zbx_discover_oradbs.py - experimental
-python variant of the zbx_discover_oradbs bash script. It should be able to also discover windows machines. Requirement for that is that the remote powershell service is running. On Linux it runs wihout any problems and can replace zbx_discover_oradbs. Assuming ssh is configured with keys.
+# zbx_discover_oradbs.py
+It should be able to also discover windows machines. Requirement for that is that the remote powershell service is running. Assuming ssh is configured with keys.
 ## configuration file - csv file with header:
 ```
 site;cluster;alert_group;protocol;user;password;password_enc;members
@@ -170,14 +168,12 @@ cust01;;;rdp;oracle;secret;;win00
 cust01;;;rdp;oracle;verysecret;;win01
 cust01;;;rdb;oracle;unknown;;wclu01,wclu02,wclu03
 ```
-# zbx_alertlog.sh
-A bash script that runs as an user command, by the agent, that connects to all instances on the host and discovers all log.xml files for alert monitoring. Replaced by zbx_alertlog.py, that also runs on Windows.
 # zbx_alertlog.py
 A python script that is supposed to run on the Oracle database server. It connects to all detected instances,
 reads the v$diag_info for the correct log.xml location. zbx_alertlog.py also checks for existence of the log.xml
 and creates an empty file if it does not -yet- exist -anymore-. Since the zabbix agent that is going to read the
 alert log.xml runs in the zabbix account and not oracle, permissions are modified to 744.
-The lld array is sent to zabbix using zabbix-sender (and written to zbx_alertlog.lld)
+The lld array is sent to zabbix using zabbix_sender (and written to zbx_alertlog.lld)
 
 usage: zbx_alertlog.py [-h] [-o ORATAB] [-s SERVERNAME] [-p PORT] -H HOSTNAME -k KEY
 

@@ -4,11 +4,10 @@ server[s]. A better place is on the zabbix server or on a zabbix proxy.
 # what is a host?
 A host in zabbix can be a computer but also a router, switch, SAN and in this case, a database cluster. A host
 in zabbix is a thing that has a collection of items. For Oracle create a host for the physical database, for
-SQLServer create a host for an Instance, for Postgres create a host for the cluster, for cockroach create a host
-for the cluster. 
+SQLServer create a host for an Instance, for Postgres create a host for the cluster, for cockroach create a host for the cluster.
 An Oracle database can have multiple Instances and multiple databases. They are collected in a single host.
 A SQLServer instance has multiple databases and in an always on configuration can be active on several machines.
-That instance s handled by a single host.
+That instance is handled by a single host.
 A Postgres cluster is very similar to a SQLServer instance.
 A cockroach cluster can have many nodes. That cluster is handled by a single host.
 
@@ -19,12 +18,13 @@ to the server or proxy port, as wel as a creating a connection to the remote dat
 logon as zbxdb
 use pyenv to manage a local python version for zbxdb
 
-curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
+curl - L https: // github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
+(check that your .bashrc has the pyenv init code in it (logout and back in to check it's working))
 
 pyenv install 3.6.5
 
-git clone https://github.com/ikzelf/zbxdb.git
-
+git clone https: // github.com/ikzelf/zbxdb.git
+pyenv global 3.6.5
 pip install -r zbxdb/requirements.txt
 
 cp -rp zbxdb/etc $HOME/
@@ -35,13 +35,14 @@ zbxdb.{hostname_in_zabbix}.cfg
 Replace the samples with your own configuration files.
 
 Add these entries into .bash_profile of the home directoy of the user that will run zbxdb:
-  - export ZBXDB_HOME=$HOME
-  - export ZBXDB_OUT=$ZBXDB_HOME/zbxora_out  ## make sure this reflects the out_dir parameter in the monitoring cfg files.
-  - export PATH=$PATH:$HOME/zbxdb/bin
+    - export ZBXDB_HOME=$HOME
+    # make sure this reflects the out_dir parameter in the monitoring cfg files.
+    - export ZBXDB_OUT=$ZBXDB_HOME/zbxora_out
+    - export PATH=$PATH:$HOME/zbxdb/bin
 
 source .bash_profile
 
-Load the template (zbxdb_template_v3.xml or zbxdb_template_v4.xml) and link it to hostname in zabbix that
+Load the template(zbxdb_template_v3.xml or zbxdb_template_v4.xml) and link it to hostname in zabbix that
 represents the database that you want to monitor. That hostname should be in the hostname parameter in your monitoring .cfg file of this database.
 
 make sure that zabbix_sender is available
@@ -51,12 +52,12 @@ create the directory for log, collecting the metrics and workspace for zbxdb_sen
 - mkdir $HOME/zbxdb_sender
 
 add into the crontab:
-<br>
-`* * * * * $HOME/zbxdb/bin/zbxdb_starter > /dev/null 2>&1`
-<br>
-`* * * * * $HOME/zbxdb/bin/zbxdb_sender  > /dev/null 2>&1`
-<br>or:<br>
-`* * * * * export ZBXDB_OUT={out_dir_from_zbxdb.py's};$HOME/zbxdb/bin/zbxdb_sender.py  > /dev/null 2>&1`
+<br >
+`* * * * * $HOME/zbxdb/bin/zbxdb_starter > /dev/null 2 > &1`
+<br >
+`* * * * * $HOME/zbxdb/bin/zbxdb_sender > /dev/null 2 > &1`
+<br > or: < br >
+`* * * * * export ZBXDB_OUT = {out_dir_from_zbxdb.py's} $HOME/zbxdb/bin/zbxdb_sender.py > /dev/null 2 > &1`
 
 Now, zbxdb_starter will check $ZBXDB_HOME/etc/ for files starting with 'zbxdb.' and ending with '.cfg'
 that are writeable. If such a file is found and the corresponding zbxdb.py process is not running, it
@@ -67,5 +68,5 @@ the files to zabbix and keep a few days of history in $HOME/zbxdb_sender/archive
 
 - If anything fails, first check the log/ directory.
 - zbxdb.py can be run from the commandline to debug the cfg files.
-- if you see data coming into $ZBXDB_OUT/ the collection could be OK (errors are reported on stdout)
+- if you see data coming into $ZBXDB_OUT/ the collection could be OK(errors are reported on stdout)
 - if zbxdb_sender/archive/ remains empty, zbxdb_sender is not picking up your metrics.  Check the log.
