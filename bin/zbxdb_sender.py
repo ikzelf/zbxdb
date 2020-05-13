@@ -19,6 +19,8 @@ import subprocess
 import sys
 import time
 import zipfile
+from argparse import ArgumentParser
+
 
 def setup_logging(
         default_path='etc/logging_sender.json',
@@ -51,8 +53,26 @@ def setup_logging(
 
     return False
 
+
 LOG_CONF = setup_logging()
 LOGGER = logging.getLogger(__name__)
+LOGGER.warning("Logging in %s", LOGGER.root.handlers[1].baseFilename)
+
+LOGGER.debug("{}: {}".format(len(sys.argv), sys.argv))
+
+if len(sys.argv) > 2:
+    # now using new interface, with only defaults or specified argumens
+    _parser = ArgumentParser()
+    _parser.add_argument("-c", "--cfile", default="/etc/zabbix/zabbix_agentd.conf",
+                         help="Configuration file of zabbix agent")
+    _parser.add_argument("-z", "--zbxdb_out", required=True,
+                         help="output directory of zbxdb to use as input for sender")
+    _parser.add_argument("-v", "--verbosity", action="count", default=0,
+                         help="increase output verbosity overriding the default")
+    _args = _parser.parse_args()
+
+    LOGGER.warning(_args)
+
 ZABBIX_SERVER = os.environ.get("ZABBIX_SERVER", "127.0.0.1")
 ZABBIX_SERVERS = os.environ.get("ZABBIX_SERVERS", ZABBIX_SERVER)
 ZABBIX_SERVER_PORT = os.environ.get("ZABBIX_SERVER_PORT", "10051")
@@ -60,9 +80,6 @@ ZABBIX_SERVER_PORTS = os.environ.get("ZABBIX_SERVER_PORTS", ZABBIX_SERVER_PORT)
 
 s = ZABBIX_SERVERS.split(",")
 p = ZABBIX_SERVER_PORTS.split(",")
-
-LOGGER.warning("ZABBIX_SERVERS {} ZABBIX_SERVER_PORTS {}".format(ZABBIX_SERVERS,
-                                                        ZABBIX_SERVER_PORTS))
 
 if len(s) > len(p):
     for i in range(len(p), len(s)):
@@ -80,30 +97,37 @@ NOWD = time.strftime("%a")
 # used to check for 1st run of the day (truncate)
 NOWM = time.strftime("%H%M")
 NOWDLOG = os.path.join(HOME, "log", ME+"."+NOWD+".log")
-LOGGER.warning("Logging in %s", LOGGER.root.handlers[1].baseFilename)
 # asuming only 1 handler .... could be cleaner, I know.
 
 ZBXDB_OUT = None
 
-if len(sys.argv) > 1:
+if len(sys.argv) > 1 and sys.argv[1][0] != "-":
     ZBXDB_OUT = sys.argv[1]
+
+if '_args' in locals() and _args.zbxdb_out:
+    ZBXDB_OUT = _args.zbxdb_out
 
 if ZBXDB_OUT is None:
     if "ZBXDB_OUT" in os.environ:
         ZBXDB_OUT = os.environ["ZBXDB_OUT"]
 
 if ZBXDB_OUT is None:
-    LOGGER.fatal("""{} specify ZBXDB_OUT in the environment or as first argument of {}
+    LOGGER.fatal("""{} specify ZBXDB_OUT in the environment
+    or as first argument of {}
+    or using -z option
 Usage {} [ZBXDB_OUT]
+   or {} -c agentd.conf -z zbxdb_out_dir
    to collect zbxdb.py outputs from that directory to send to zabbix
    ZBXDB_OUT should point to the out_dir directory in the zbxdb.py config[s]
-   using {} directory in {} for work space
-   sending to ZABBIX_SERVER {} on ZABBIX_SERVER_PORT {}
-   """.format(ME, ME, ME, ME, HOME, HOME, ZABBIX_SERVERS, ZABBIX_SERVER_PORTS))
+   using {} directory in {} for workspace
+   sending to ZABBIX_SERVER {} on ZABBIX_SERVER_PORT {} unless -cfile exists
+   If -cfile exists, sending to the listed ServerAcive[s]
+   """.format(ME, ME, ME, ME, ME, HOME, ZABBIX_SERVERS, ZABBIX_SERVER_PORTS))
     sys.exit(1)
 
 if os.geteuid() == 0:
-    LOGGER.fatal("Running as root, don't run zbxdb* scripts as root, for your own sake")
+    LOGGER.fatal(
+        "Running as root, don't run zbxdb* scripts as root, for your own sake")
     sys.exit(13)
 
 if not os.path.isdir(ZBXDB_OUT):
@@ -112,7 +136,8 @@ if not os.path.isdir(ZBXDB_OUT):
     sys.exit(1)
 
 if not os.access(ZBXDB_OUT, os.W_OK):
-    LOGGER.fatal("{} ZBXDB_OUT directory {} not writeable".format(ME, ZBXDB_OUT))
+    LOGGER.fatal(
+        "{} ZBXDB_OUT directory {} not writeable".format(ME, ZBXDB_OUT))
     sys.exit(1)
 
 if not shutil.which('zabbix_sender'):
@@ -130,25 +155,27 @@ for d in [BASE, TMPIN, ARCHIVE]:
 LOCK = os.path.join(BASE, ME+".lock")
 if os.path.exists(LOCK):
     LOGGER.warning("{} previous run still running(or crashed(lock file: {}))"
-          .format(NOW, LOCK))
+                   .format(NOW, LOCK))
     sys.exit(2)
 
 open(LOCK, 'a').close()
-l = [f for f in os.listdir(ZBXDB_OUT) if os.path.isfile(os.path.join(ZBXDB_OUT,f))]
+l = [f for f in os.listdir(ZBXDB_OUT) if os.path.isfile(
+    os.path.join(ZBXDB_OUT, f))]
 for f in l:
     # existing files are overwritten
-    LOGGER.debug("Move '{}' to {}".format(os.path.join(ZBXDB_OUT, f), os.path.join(TMPIN, f)))
+    LOGGER.debug("Move '{}' to {}".format(
+        os.path.join(ZBXDB_OUT, f), os.path.join(TMPIN, f)))
     shutil.move(os.path.join(ZBXDB_OUT, f), os.path.join(TMPIN, f))
 
 for f in sorted(os.listdir(TMPIN)):
     LOGGER.warning("{} processing {}".format(NOW, f))
     # 1 file at a time. Since zabbix v4 the limit of what can be sent in one
     # run is reduced a lot. Concatenation will give problems.
-    for server, port in zip(s, p):
-        process = subprocess.Popen(["zabbix_sender -z {} -p {} -T -i {} -vv"
+    if '_args' in locals() and os.path.exists(_args.cfile) and os.access(_args.cfile, os.R_OK):
+        LOGGER.warning("Using {}".format(_args.cfile))
+        process = subprocess.Popen(["zabbix_sender -f {} -T -i {} -vv"
                                     .format(
-                                        server,
-                                        port,
+                                        _args.cfile,
                                         os.path.join(TMPIN, f))],
                                    shell=True,
                                    stdout=subprocess.PIPE,
@@ -157,10 +184,33 @@ for f in sorted(os.listdir(TMPIN)):
         output = process.stdout.read().decode()
         err = process.stderr.read().decode()
         exit_code = process.wait()
-        LOGGER.debug("{} {} zabbix_sender {}:{} rc: {}".format(
-            NOW, f, server, port, exit_code))
+        LOGGER.debug("{} {} zabbix_sender rc: {}".format(
+            NOW, f, exit_code))
         LOGGER.debug("{} output {}: {}".format(NOW, f, output))
         LOGGER.debug("{} stderr {}: {}".format(NOW, f, err))
+    else:
+        LOGGER.warning(
+            "agent config not usable, fallback to environment")
+        LOGGER.warning("sending to ZABBIX_SERVERS {} ZABBIX_SERVER_PORTS {}".format(
+            ZABBIX_SERVERS,
+            ZABBIX_SERVER_PORTS))
+        for server, port in zip(s, p):
+            process = subprocess.Popen(["zabbix_sender -z {} -p {} -T -i {} -vv"
+                                        .format(
+                                            server,
+                                            port,
+                                            os.path.join(TMPIN, f))],
+                                       shell=True,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE,
+                                       close_fds=True)
+            output = process.stdout.read().decode()
+            err = process.stderr.read().decode()
+            exit_code = process.wait()
+            LOGGER.debug("{} {} zabbix_sender {}:{} rc: {}".format(
+                NOW, f, server, port, exit_code))
+            LOGGER.debug("{} output {}: {}".format(NOW, f, output))
+            LOGGER.debug("{} stderr {}: {}".format(NOW, f, err))
 
     ziparch = os.path.join(ARCHIVE, "zbx_{}.zip".format(NOW))
     LOGGER.info("Archiving to {}".format(ziparch))
