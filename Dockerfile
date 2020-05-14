@@ -15,5 +15,6 @@ RUN curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-instal
 RUN eval "$(pyenv init -)" 
 RUN eval "$(pyenv virtualenv-init -)"
 RUN pyenv install 3.6.5
+RUN pyenv global 3.6.5
 RUN pip install -r /zbxdb/requirements.txt
 ##RUN cp -rp /zbxdb/etc $HOME/ cp -p zbxdb/logging.json.example $HOME/etc/ -- TODO: Uncomment and edit if trick with editing $HOME to /zbxdb.

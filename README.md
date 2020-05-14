@@ -13,7 +13,7 @@ value is detected.
 
 Tested with
 
-- Oracle 10, 11, 12, 18 RAC and single instance databases (probably also running on older versions)
+- Oracle 10, 11, 12, 18 RAC and single instance databases(probably also running on older versions)
 - Oracle primary and standby databases
 - Oracle asm, apx instances
 - Oracle plugin/multitenant databases
@@ -24,8 +24,8 @@ Tested with
 
 zbxdb is very cluster aware and will monitor the full cluster using a single connection to a single instance and monitor all databases served by that instance.
 
-Create a separate host for every Oracle database in zabbix (not for every instance of a RAC).
-Create a separate host for every mssql instance in zabbix (not for every datbase served by that instance).
+Create a separate host for every Oracle database in zabbix(not for every instance of a RAC).
+Create a separate host for every mssql instance in zabbix(not for every datbase served by that instance).
 
 [getting started](doc/getting_started.md)
 [trouble shooting](doc/trouble_shooting.md)
@@ -42,7 +42,7 @@ The sql's should return key/value pairs. In the template everything is written f
 point and similar queries are defined for mssql and postgres, both using the same template, item
 prototypes and triggers.
 
-Did you create and test/use a new set of queries for a version or for a database not yet listed, please, feel free to share them, to make the supported list bigger. The fact that I did not list them here does not mean it can't be done. It just means that I have no access to them (and also no immediate need) but I would be happy to add.
+Did you create and test/use a new set of queries for a version or for a database not yet listed, please, feel free to share them, to make the supported list bigger. The fact that I did not list them here does not mean it can't be done. It just means that I have no access to them(and also no immediate need) but I would be happy to add.
 
 usage zbxdb.py - c configfile
 resulting in log to stdout and datafile in specified out_dir/{configfile}.zbx
@@ -100,13 +100,13 @@ drivererrors and dbconnections are loaded dynamically, based on the `db_driver` 
 - [SAP on Oracle](etc/zbxdb_checks/oracle/sap.cfg)
 
 # working of zbxdb.py
-Assuming bin/ is in PATH:
+Assuming bin / is in PATH:
 When using this configfile(zbxdb.py - c etc/zbxdb.odb.cfg)
 zbxdb.py will read the configfile
 and try to connect to the database using db_url
 If all parameters are correct zbxdb will keep looping forever.
 Using the site_checks as shown, zbxdb tries to find them in `checks_dir/db_type/sap.cfg
-and in checks_dir/db_type/ebs.cfg (just specify a comma separated list for this if you have multiple files)
+and in checks_dir/db_type/ebs.cfg(just specify a comma separated list for this if you have multiple files)
 Outputfile containing the metrics is created in out_dir/zbxdb.odb.zbx
 
 After having connected to the specified service, zbxdb finds out the instance_type and version,
@@ -134,20 +134,20 @@ should be application independent and be generic for that type and version of da
 For RAC databases, just connect using 1 instance
 For pluggable database, just connect to a common user to monitor all plugin databases.
 
-zbxdb.py should be restarted if it accidentally crashes, what very rarely happens. On \*nix the  zbxdb_starter
-takes care for starting all instances of zbxdb.py, with  a 1 second delay. On Windows zbxdb.py could be
+zbxdb.py should be restarted if it accidentally crashes, what very rarely happens. On \* nix the  zbxdb_starter
+takes care for starting all instances of zbxdb.py, with a 1 second delay. On Windows zbxdb.py could be
 implemented as a service that auto starts.
 # Enclosed tools:
 # zbxdb_starter
 this is an aide to[re]start zbxdb in an orderly way. Put it in the crontab, every minute.
-It will check the etc directory (note the lack of a leading '/') and start the configuration
+It will check the etc directory(note the lack of a leading '/') and start the configuration
 files named etc/zbxdb.{your_config}.cfg, each given their own logfile. Notice the sleep in the start
 sequence. This is done to make sure not all concurrently running zbxdb sessions awake at
 the same moment. Now their awakenings is separated by a second. This makes that if running
 10 monitors, they are executing their checks one after an other.
 **Schedule this in the crontab, every minute.**
 Make sure that ZBXDB_HOME is defined in your .bash_profile and also add the location of zbxdb.py to
-your PATH. In my case: PATH=$HOME/zbxdb/bin:$PATH
+your PATH. In my case: PATH =$HOME/zbxdb/bin: $PATH
 # zbxdb_stop
 Just to stop all currently running zbxdb.py scripts for the user.
 
@@ -155,27 +155,56 @@ Just to stop all currently running zbxdb.py scripts for the user.
 this is used to really send the data to zabbix. Could be zabbix server, could be zabbix proxy, only
 depending on the location of your monitoring host. It collects the files from the out_dir and
 sends them in one session. Doing so makes the process pretty efficient, at the cost of a small delay.
+zbxdb_sender.py - c / etc/zabbix/zabbix_agentd.conf - z zbxdb_out
+Uses the agent configuration and makes it possible to use encryption. Using the agent configuration uses the
+ServerAcive adresses to send the data to
 **Schedule this in the crontab, every minute.**
 
 # zbx_discover_oradbs.py
 It should be able to also discover windows machines. Requirement for that is that the remote powershell service is running. Assuming ssh is configured with keys.
-## configuration file - csv file with header:
+# configuration file - csv file with header:
 ```
-site;cluster;alert_group;protocol;user;password;password_enc;members
-cust01;;prod_alerts;ssh;;;;srv-db-01
-cust01;prod01;prod_alerts;ssh;;;;prod0101,prod0102,prod0103
-cust01;;;rdp;oracle;secret;;win00
-cust01;;;rdp;oracle;verysecret;;win01
-cust01;;;rdb;oracle;unknown;;wclu01,wclu02,wclu03
+site
+cluster
+alert_group
+protocol
+user
+password
+password_enc
+members
+cust01
+prod_alerts
+ssh
+srv-db-01
+cust01
+prod01
+prod_alerts
+ssh
+prod0101, prod0102, prod0103
+cust01
+rdp
+oracle
+secret
+win00
+cust01
+rdp
+oracle
+verysecret
+win01
+cust01
+rdb
+oracle
+unknown
+wclu01, wclu02, wclu03
 ```
 # zbx_alertlog.py
 A python script that is supposed to run on the Oracle database server. It connects to all detected instances,
 reads the v$diag_info for the correct log.xml location. zbx_alertlog.py also checks for existence of the log.xml
-and creates an empty file if it does not -yet- exist -anymore-. Since the zabbix agent that is going to read the
+and creates an empty file if it does not -yet - exist - anymore-. Since the zabbix agent that is going to read the
 alert log.xml runs in the zabbix account and not oracle, permissions are modified to 744.
-The lld array is sent to zabbix using zabbix_sender (and written to zbx_alertlog.lld)
+The lld array is sent to zabbix using zabbix_sender(and written to zbx_alertlog.lld)
 
-usage: zbx_alertlog.py [-h] [-o ORATAB] [-s SERVERNAME] [-p PORT] -H HOSTNAME -k KEY
+usage: zbx_alertlog.py[-h][-o ORATAB][-s SERVERNAME][-p PORT] - H HOSTNAME - k KEY
 
 # modules
 # drivererrors
@@ -264,9 +293,9 @@ Using high privileged accounts is not needed in Oracle.
 # upgrading
 Normally is is enough to just overwrite zbxdb.py with the new copy. The running instance will notice
 the change and reload it without any problems.
-## v2.0 --  logging module introduced
+# v2.0 --  logging module introduced
 When coming from v1, the upgrade to v2 has to be prepared by putting a logging.json in your
-ZBXDB_HOME/etc/ folder. If that is in place the upgrade will be a smooth as before, otherwise
+ZBXDB_HOME/etc / folder. If that is in place the upgrade will be a smooth as before, otherwise
 zbxdb.py will fallback to a default logging configuration, to stdout. No problem at all but since v2
 logging is properly introduced and has more options to configure. To make the best of it, it is best
 to completely the running instances of zbxdb.py, because zbxdb_starter opens with output redirection
@@ -282,9 +311,9 @@ grant create session, select any dictionary, oem_monitor to cistats
 # Oracle multitenant
 In Oracle 12 or later - when using pluggable database, in the root container, create a common user:
 ```
-create user c##cistats identified by knowoneknows;
-alter user c##cistats set container_data = all container = current;
-grant create session, select any dictionary, oem_monitor, dv_monitor to c##cistats;
+create user c  # cistats identified by knowoneknows;
+alter user c  # cistats set container_data = all container = current;
+grant create session, select any dictionary, oem_monitor, dv_monitor to c  # cistats;
 ```
 # SQLserver
 ```
@@ -309,9 +338,10 @@ grant select on sysjobactivity to[CISTATS]
 ```
 # postgreSQL
 ```
-create extension dblink;
-In order to be able to create a dblink, the contrib package must be installed on the dbserver[s] (postgresql9*-contrib).
-for collecting total dead and live tuples per database a temporary table and a dblink is used. The queries for this collection use a construction for which postgres - sadly enough - requires superuser to do that without password. 
+create extension dblink
+In order to be able to create a dblink, the contrib package must be installed on the dbserver[s](postgresql9*-contrib).
+
+for collecting total dead and live tuples per database a temporary table and a dblink is used. The queries for this collection use a construction for which postgres - sadly enough - requires superuser to do that without password.
 I am very open for tips to make this better, without a superuser account.
 
 v9:
@@ -325,12 +355,12 @@ GRANT TEMPORARY on DATABASE postgres TO cistats
 
 If you need statistics like live/dead tuples per database a dblink is used. To use this without password the
 user needs to be superuser. Sad enough.
-alter user cistats with superuser;
+alter user cistats with superuser
 ```
 # mysql
 ```
 grant SELECT, REPLICATION CLIENT, SHOW DATABASES, SUPER, PROCESS
-  ON *.*
-  TO  'cistats'@'localhost'
-  IDENTIFIED BY 'knowoneknows';
+ON * .*
+TO  'cistats'@'localhost'
+IDENTIFIED BY 'knowoneknows'
 ```

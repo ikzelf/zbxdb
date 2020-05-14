@@ -52,18 +52,16 @@ add into the crontab:
 <br >
 `* * * * * $HOME/zbxdb/bin/zbxdb_starter > /dev/null 2 > &1`
 <br >
-`* * * * * $HOME/zbxdb/bin/zbxdb_sender > /dev/null 2 > &1`
-<br > or: < br >
-`* * * * * export ZBXDB_OUT = {out_dir_from_zbxdb.py's} $HOME/zbxdb/bin/zbxdb_sender.py > /dev/null 2 > &1`
+`* * * * * $HOME/zbxdb/bin/zbxdb_sender -c /etc/zabbix/zabbix_agentd.conf -z zbxdb_out > /dev/null 2 > &1`
 
 Now, zbxdb_starter will check $ZBXDB_HOME/etc/ for files starting with 'zbxdb.' and ending with '.cfg'
 that are writeable. If such a file is found and the corresponding zbxdb.py process is not running, it
 will start that process.
 
-zbxdb_sender will check $ZBXDB_OUT/ and move the contents to $HOME/zxbdb_sender/in/. Next it will send
+zbxdb_sender will check zbxdb_out/ and move the contents to $HOME/zxbdb_sender/in/. Next it will send
 the files to zabbix and keep a few days of history in $HOME/zbxdb_sender/archive/
 
 - If anything fails, first check the log/ directory.
 - zbxdb.py can be run from the commandline to debug the cfg files.
-- if you see data coming into $ZBXDB_OUT/ the collection could be OK(errors are reported on stdout)
+- if you see data coming into zbxdb_out/ the collection could be OK(errors are reported on stdout)
 - if zbxdb_sender/archive/ remains empty, zbxdb_sender is not picking up your metrics.  Check the log.
