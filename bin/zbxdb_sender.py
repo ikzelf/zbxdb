@@ -173,7 +173,7 @@ for f in sorted(os.listdir(TMPIN)):
     # run is reduced a lot. Concatenation will give problems.
     if '_args' in locals() and os.path.exists(_args.cfile) and os.access(_args.cfile, os.R_OK):
         LOGGER.warning("Using {}".format(_args.cfile))
-        process = subprocess.Popen(["zabbix_sender -f {} -T -i {} -vv"
+        process = subprocess.Popen(["zabbix_sender -c {} -T -i {} -vv"
                                     .format(
                                         _args.cfile,
                                         os.path.join(TMPIN, f))],
