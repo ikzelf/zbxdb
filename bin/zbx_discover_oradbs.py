@@ -270,13 +270,13 @@ def main():
             print("member config {}".format(member[1]))
         instances = []
 
-        for lines in member[1]:
+        for lines in member[2]:
             for line in lines.split('\n'):
                 if "Instance" in line:
                     if "READY" in line:
                         if _args.verbosity > 2:
                             print("line: {}".format(line))
-                        instance = line.split('"')[2]
+                        instance = line.split('"')[1]
 
                         if _args.verbosity > 2:
                             print(instance)
@@ -304,7 +304,7 @@ def main():
             else:
                 _e.update({"{#GROUP}": member[1]['site']})
 
-            if member[0]['alert_group']:
+            if member[1]['alert_group']:
                 _e.update({"{#ALERT}": member[1]['alert_group']})
             databases.append(_e)
 
