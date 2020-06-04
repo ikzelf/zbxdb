@@ -399,6 +399,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                 conn_has_cancel = True
             LOGGER.info(_conn)
             conn_counter += 1
+            to_outfile(_config, ME+"[connect,status]", 0)
             _cursor = _conn.cursor()
             connect_info = db_connections.connection_info(_conn)
             LOGGER.info('connected db_url %s type %s db_role %s version %s\n'
@@ -612,6 +613,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
 
                 # checks discovery is also printed
                 #
+                # assume we are still connected. If not, exception will tell real story
+                to_outfile(_config, ME + "[connect,status]", 0)
                 to_outfile(_config, ME + "[uptime]",
                            int(time.time() - start_time))
                 to_outfile(_config, ME + "[opentime]",

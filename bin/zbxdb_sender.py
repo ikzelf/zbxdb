@@ -91,12 +91,14 @@ if len(p) > len(s):
 
 ME = os.path.splitext(os.path.basename(__file__))[0]
 HOME = os.path.expanduser("~")
+ZBXDB_HOME = os.environ["ZBXDB_HOME"]
 NOW = time.strftime("%Y-%m-%d-%H%M")  # used for zipfile name
 # used for logfile name leading to max 7 files
 NOWD = time.strftime("%a")
 # used to check for 1st run of the day (truncate)
 NOWM = time.strftime("%H%M")
-NOWDLOG = os.path.join(HOME, "log", ME+"."+NOWD+".log")
+NOWDLOG = os.path.join(ZBXDB_HOME, "log", ME+"."+NOWD+".log")
+print("Logging to {}".format(NOWDLOG))
 # asuming only 1 handler .... could be cleaner, I know.
 
 ZBXDB_OUT = None
