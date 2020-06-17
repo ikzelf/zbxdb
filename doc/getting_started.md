@@ -50,10 +50,9 @@ create the directory for log, collecting the metrics and workspace for zbxdb_sen
 
 add into the crontab:
 <br >
-`* * * * * $HOME/zbxdb/bin/zbxdb_starter > log/zbxdb_starter.cron 2 > &1`
+`* * * * * . $HOME/.bash_profile;$HOME/zbxdb/bin/zbxdb_starter >log/zbxdb_starter.cron 2>&1`
 <br >
-`* * * * * $HOME/zbxdb/bin/zbxdb_sender -c /etc/zabbix/zabbix_agentd.conf -z zbxdb_out >
-log/zbxdb_sender.cron 2 > &1`
+`* * * * * . $HOME/.bash_profile;$HOME/zbxdb/bin/zbxdb_sender.py -c /etc/zabbix/zabbix_agentd.conf -z zbxdb_out >log/zbxdb_sender.cron 2>&1`
 
 Now, zbxdb_starter will check $ZBXDB_HOME/etc/ for files starting with 'zbxdb.' and ending with '.cfg'
 that are writeable. If such a file is found and the corresponding zbxdb.py process is not running, it
