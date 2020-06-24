@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zabbix_export>
+    <version>4.4</version>
+    <date>2020-06-12T10:58:41Z</date>
+    <groups>
+        <group>
+            <name>parc</name>
+        </group>
+    </groups>
+    <templates>
+        <template>
+            <template>template zbx_alertlog</template>
+            <name>template zbx_alertlog</name>
+            <description>for alertlog discovery on every database server with a zabbix agent</description>
+            <groups>
+                <group>
+                    <name>parc</name>
+                </group>
+            </groups>
+            <applications>
+                <application>
+                    <name>oracle</name>
+                </application>
+                <application>
+                    <name>rdbms</name>
+                </application>
+            </applications>
+            <discovery_rules>
+                <discovery_rule>
+                    <name>oracle.alertlog.lld</name>
+                    <type>ZABBIX_ACTIVE</type>
+                    <key>oracle.alertlog.lld</key>
+                    <delay>20m</delay>
+                    <lifetime>2w</lifetime>
+                    <item_prototypes>
+                        <item_prototype>
+                            <name>lines[{#INSTANCE_NAME},alertlog,1D]</name>
+                            <type>CALCULATED</type>
+                            <key>lines[{#INSTANCE_NAME},alertlog,1D]</key>
+                            <delay>1d</delay>
+                            <history>1w</history>
+                            <params>sum(&quot;lines[{#INSTANCE_NAME},alertlog,1H]&quot;,1d)</params>
+                            <applications>
+                                <application>
+                                    <name>oracle</name>
+                                </application>
+                            </applications>
+                            <request_method>POST</request_method>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>lines[{#INSTANCE_NAME},alertlog,1H]</name>
+                            <type>CALCULATED</type>
+                            <key>lines[{#INSTANCE_NAME},alertlog,1H]</key>
+                            <delay>1h</delay>
+                            <history>1w</history>
+                            <params>sum(&quot;lines[{#INSTANCE_NAME},alertlog]&quot;,1h)</params>
+                            <applications>
+                                <application>
+                                    <name>oracle</name>
+                                </application>
+                            </applications>
+                            <request_method>POST</request_method>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>lines[{#INSTANCE_NAME},alertlog]</name>
+                            <type>CALCULATED</type>
+                            <key>lines[{#INSTANCE_NAME},alertlog]</key>
+                            <history>1w</history>
+                            <params>count(&quot;log[{#ALERTLOG},(ORA-|time=|ERROR|Dead)]&quot;,60)</params>
+                            <description>number of lines that the log item received</description>
+                            <applications>
+                                <application>
+                                    <name>oracle</name>
+                                </application>
+                            </applications>
+                            <request_method>POST</request_method>
+                            <trigger_prototypes>
+                                <trigger_prototype>
+                                    <expression>{min(5m)}&gt;{$MANY_ALERTLOGLINES}</expression>
+                                    <name>{#INSTANCE_NAME}[alertlog] &gt;$1 lines/m for 5m</name>
+                                    <priority>WARNING</priority>
+                                    <description>alertlog is very active .... possible problems</description>
+                                </trigger_prototype>
+                            </trigger_prototypes>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>{#INSTANCE_NAME}[alertlog]</name>
+                            <type>ZABBIX_ACTIVE</type>
+                            <key>log[{#ALERTLOG},(ORA-|time=|ERROR|Dead)]</key>
+                            <history>8d</history>
+                            <trends>0</trends>
+                            <value_type>LOG</value_type>
+                            <applications>
+                                <application>
+                                    <name>oracle</name>
+                                </application>
+                            </applications>
+                            <logtimefmt>&lt;msg time='yyyy-MM-ddThh:mm:ss</logtimefmt>
+                            <request_method>POST</request_method>
+                            <trigger_prototypes>
+                                <trigger_prototype>
+                                    <expression>{iregexp(&quot;ORA-0*(29771):&quot;,2h)}=1</expression>
+                                    <name>{#INSTANCE_NAME}[alertlog] ADG bug found</name>
+                                    <priority>INFO</priority>
+                                    <description>bug:&#13;
+ORA-29771: process USER (OSID 57690) blocks LGWR (OSID 366283) for more than 70 seconds</description>
+                                </trigger_prototype>
+                                <trigger_prototype>
+                                    <expression>{iregexp(&quot;ORA-0*403(0|1|2|3|5|6):&quot;,2h)}=1</expression>
+                                    <name>{#INSTANCE_NAME}[alertlog] allocate pga/shared</name>
+                                    <priority>AVERAGE</priority>
+                                    <description>memory problems shared pool or pga</description>
+                                </trigger_prototype>
+                                <trigger_prototype>
+                                    <expression>{iregexp(&quot;ORA-0*1578:&quot;,1h)}=1</expression>
+                                    <name>{#INSTANCE_NAME}[alertlog] corrupted block[s]</name>
+                                    <priority>HIGH</priority>
+                                    <description>block corruption</description>
+                                </trigger_prototype>
+                                <trigger_prototype>
+                                    <expression>{iregexp(&quot;.*DEADLOCK.*&quot;,5m)}=1</expression>
+                                    <name>{#INSTANCE_NAME}[alertlog] deadlock</name>
+                                    <priority>INFO</priority>
+                                    <description>kan zijn: ORA-00060 maar ook: Global Enqueue Services Deadlock detected dus op text blijven scannen</description>
+                                </trigger_prototype>
+                                <trigger_prototype>
+                                    <expression>{iregexp(&quot;ORA-12012:&quot;,1h)}=1</expression>
+                                    <name>{#INSTANCE_NAME}[alertlog] error on auto executed job</name>
+                                    <status>DISABLED</status>
+                                    <priority>INFO</priority>
+                                </trigger_prototype>
+                                <trigger_prototype>
+                                    <expression>{iregexp(&quot;ORA-0*(600|7445):&quot;,2h)}=1</expression>
+                                    <name>{#INSTANCE_NAME}[alertlog] has internal error[s]</name>
+                                    <status>DISABLED</status>
+                                    <priority>INFO</priority>
+                                    <description>internal errors like 00600 07445</description>
+                                </trigger_prototype>
+                                <trigger_prototype>
+                                    <expression>{iregexp(&quot;ORA-0*(1652|1653|1683|1691|1692|30036):&quot;,2h)}=1</expression>
+                                    <name>{#INSTANCE_NAME}[alertlog] has unable to extend ...</name>
+                                    <priority>HIGH</priority>
+                                </trigger_prototype>
+                                <trigger_prototype>
+                                    <expression>{iregexp(&quot;kcbr_apply_change_&quot;,10m)}=1</expression>
+                                    <name>{#INSTANCE_NAME}[alertlog] kcbr_apply_change</name>
+                                    <priority>HIGH</priority>
+                                    <description>apply overleden. Te herstarten door terug naar mount mode en handmatig&#13;
+'alter database recover managed standby database disconnect from session;'&#13;
+te geven.&#13;
+Vergeet niet om de database weer voor read only te openen, als van toepassing.&#13;
+Lijkt volgens Doc ID 26875822.8 op Bug 26875822</description>
+                                </trigger_prototype>
+                                <trigger_prototype>
+                                    <expression>{iregexp(&quot;krbb1cf_badblk&quot;,10m)}=1</expression>
+                                    <name>{#INSTANCE_NAME}[alertlog] krbb1cf_badblk</name>
+                                    <priority>AVERAGE</priority>
+                                    <description>zie ORA-600:[krbb1cf_badblk] during RMAN backup (Doc ID 2088954.1)</description>
+                                </trigger_prototype>
+                                <trigger_prototype>
+                                    <expression>{iregexp(&quot;ORA-0*(19809|18|20|1000):&quot;,2h)}=1</expression>
+                                    <name>{#INSTANCE_NAME}[alertlog] limit exceeded</name>
+                                    <priority>HIGH</priority>
+                                    <description>ORA-00018.Maximum number of sessions exceed&#13;
+ORA-00020: maximum number of processes exceeded&#13;
+ORA-01000: maximum open cursors exceeded&#13;
+ORA-19809 limit exceeded for recovery files</description>
+                                </trigger_prototype>
+                                <trigger_prototype>
+                                    <expression>{iregexp(&quot;ERROR: Unable to get logical block size for spfile&quot;,10m)}=1</expression>
+                                    <name>{#INSTANCE_NAME}[alertlog] spfile problem</name>
+                                    <priority>INFO</priority>
+                                    <description>ERROR: Unable to get logical block size for spfile&#13;
+mogelijk spfile opnieuw aanmaken en alias maken naar actieve locatie</description>
+                                </trigger_prototype>
+                            </trigger_prototypes>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>{#INSTANCE_NAME} CPU usage</name>
+                            <type>ZABBIX_ACTIVE</type>
+                            <key>proc.cpu.util[,{$ORACLE_RDBMS_USER},,&quot;^(ora|mdb|asm).*\{#INSTANCE_NAME}&quot;]</key>
+                            <delay>60s</delay>
+                            <history>7d</history>
+                            <value_type>FLOAT</value_type>
+                            <units>%</units>
+                            <applications>
+                                <application>
+                                    <name>rdbms</name>
+                                </application>
+                            </applications>
+                        </item_prototype>
+                    </item_prototypes>
+                    <request_method>POST</request_method>
+                </discovery_rule>
+            </discovery_rules>
+            <macros>
+                <macro>
+                    <macro>{$MANY_ALERTLOGLINES}</macro>
+                    <value>75</value>
+                </macro>
+                <macro>
+                    <macro>{$ORACLE_RDBMS_USER}</macro>
+                    <value>oracle</value>
+                </macro>
+            </macros>
+        </template>
+    </templates>
+</zabbix_export>

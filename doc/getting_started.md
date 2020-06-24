@@ -50,9 +50,9 @@ create the directory for log, collecting the metrics and workspace for zbxdb_sen
 
 add into the crontab:
 <br >
-`* * * * * $HOME/zbxdb/bin/zbxdb_starter > /dev/null 2 > &1`
+`* * * * * . $HOME/.bash_profile;$HOME/zbxdb/bin/zbxdb_starter >log/zbxdb_starter.cron 2>&1`
 <br >
-`* * * * * $HOME/zbxdb/bin/zbxdb_sender -c /etc/zabbix/zabbix_agentd.conf -z zbxdb_out > /dev/null 2 > &1`
+`* * * * * . $HOME/.bash_profile;$HOME/zbxdb/bin/zbxdb_sender.py -c /etc/zabbix/zabbix_agentd.conf -z zbxdb_out >log/zbxdb_sender.cron 2>&1`
 
 Now, zbxdb_starter will check $ZBXDB_HOME/etc/ for files starting with 'zbxdb.' and ending with '.cfg'
 that are writeable. If such a file is found and the corresponding zbxdb.py process is not running, it
@@ -64,4 +64,16 @@ the files to zabbix and keep a few days of history in $HOME/zbxdb_sender/archive
 - If anything fails, first check the log/ directory.
 - zbxdb.py can be run from the commandline to debug the cfg files.
 - if you see data coming into zbxdb_out/ the collection could be OK(errors are reported on stdout)
-- if zbxdb_sender/archive/ remains empty, zbxdb_sender is not picking up your metrics.  Check the log.
+- if zbxdb_sender/archive/ remains empty, zbxdb_sender is not picking up your metrics.  Check the log. You migh be missing the zabbix-sender utility.
+
+**NOTE**
+If database drivers require separate  libraries to be installed, regretfully they need to be installed separately.
+
+For postgres follow https://yum.postgresql.org/repopackages.php#pg12 and choose Repo required OS version
+yum install postgresql12 postgresql12-devel
+
+For Oracle install latest Oracle Instant Client
+https://oracle.github.io/odpi/doc/installation.html#oracle-instant-client-rpm
+
+Also check the prerequistes for pyenv to work
+https://github.com/pyenv/pyenv/wiki#suggested-build-environment
