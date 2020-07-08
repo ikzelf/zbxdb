@@ -47,8 +47,6 @@ def get_sids_from_linux(oratab_file):
                 _parts = _p.info['cmdline'][0].split('_')
                 _oracle_sid = "_".join(_parts[2:])
 
-                _oracle_sid = _p.info['cmdline'][0].split('_')[2]
-
                 if _oracle_sid not in o_sids:
                     print("new sid {0}".format(_oracle_sid))
                     o_sids.append(_oracle_sid)
