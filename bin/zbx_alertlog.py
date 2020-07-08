@@ -42,6 +42,10 @@ def get_sids_from_linux(oratab_file):
     for _p in psutil.process_iter(attrs=['name', 'cmdline']):
         if _p.info['cmdline']:
             if _p.info['cmdline'][0][:4] in ['ora_', 'asm_', 'apx_']:
+                # _p.info['cmdline'][0] = "ora_smon_XX_YY"
+ 
+                _parts = _p.info['cmdline'][0].split('_')
+                _oracle_sid = "_".join(_parts[2:])
 
                 _oracle_sid = _p.info['cmdline'][0].split('_')[2]
 
