@@ -167,12 +167,20 @@ for f in l:
         os.path.join(ZBXDB_OUT, f), os.path.join(TMPIN, f)))
     shutil.move(os.path.join(ZBXDB_OUT, f), os.path.join(TMPIN, f))
 
+if '_args' in locals() and os.path.exists(_args.cfile) and os.access(_args.cfile, os.R_OK):
+    LOGGER.warning("Using {}".format(_args.cfile))
+else:
+    LOGGER.warning(
+        "agent config not usable, fallback to environment")
+    LOGGER.warning("sending to ZABBIX_SERVERS {} ZABBIX_SERVER_PORTS {}".format(
+        ZABBIX_SERVERS,
+        ZABBIX_SERVER_PORTS))
+
 for f in sorted(os.listdir(TMPIN)):
     LOGGER.warning("{} processing {}".format(NOW, f))
     # 1 file at a time. Since zabbix v4 the limit of what can be sent in one
     # run is reduced a lot. Concatenation will give problems.
     if '_args' in locals() and os.path.exists(_args.cfile) and os.access(_args.cfile, os.R_OK):
-        LOGGER.warning("Using {}".format(_args.cfile))
         process = subprocess.Popen(["zabbix_sender -c {} -T -i {} -vv"
                                     .format(
                                         _args.cfile,
@@ -190,11 +198,6 @@ for f in sorted(os.listdir(TMPIN)):
         LOGGER.debug("{} output {}: {}".format(NOW, f, output))
         LOGGER.debug("{} stderr {}: {}".format(NOW, f, err))
     else:
-        LOGGER.warning(
-            "agent config not usable, fallback to environment")
-        LOGGER.warning("sending to ZABBIX_SERVERS {} ZABBIX_SERVER_PORTS {}".format(
-            ZABBIX_SERVERS,
-            ZABBIX_SERVER_PORTS))
         for server, port in zip(s, p):
             process = subprocess.Popen(["zabbix_sender -z {} -p {} -T -i {} -vv"
                                         .format(
