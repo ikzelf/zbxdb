@@ -184,8 +184,9 @@ for f in sorted(os.listdir(TMPIN)):
         output = process.stdout.read().decode()
         err = process.stderr.read().decode()
         exit_code = process.wait()
-        LOGGER.debug("{} {} zabbix_sender rc: {}".format(
-            NOW, f, exit_code))
+        if exit_code != 0:
+            LOGGER.error("zabbix_sender {} error: {}".format(
+                f, exit_code))
         LOGGER.debug("{} output {}: {}".format(NOW, f, output))
         LOGGER.debug("{} stderr {}: {}".format(NOW, f, err))
     else:
@@ -207,8 +208,9 @@ for f in sorted(os.listdir(TMPIN)):
             output = process.stdout.read().decode()
             err = process.stderr.read().decode()
             exit_code = process.wait()
-            LOGGER.debug("{} {} zabbix_sender {}:{} rc: {}".format(
-                NOW, f, server, port, exit_code))
+            if exit_code != 0:
+                LOGGER.error("zabbix_sender {} to {}:{} error: {}".format(
+                    f, server, port, exit_code))
             LOGGER.debug("{} output {}: {}".format(NOW, f, output))
             LOGGER.debug("{} stderr {}: {}".format(NOW, f, err))
 
