@@ -803,7 +803,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
             sleep_c += 1
 
             if sleep_c >= 10:
-                if sleep_s <= 301:
+                if sleep_s <= 290:
                     # don't sleep longer than 5 mins after connect failures
                     sleep_s += 10
                 sleep_c = 0
