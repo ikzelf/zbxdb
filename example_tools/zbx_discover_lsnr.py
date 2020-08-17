@@ -15,10 +15,9 @@ from argparse import ArgumentParser
 # output:
 # {"data":[{"{#DNSNAME}": "name1", "{#PORT}": "1521"}, {"{#DNSNAME}": "name2", "{#PORT}": "1521"}]}
 ME = os.path.splitext(os.path.basename(__file__))[0]
-CONFIG = ME + ".cfg"
 OUTPUT = ME + ".lld"
 _PARSER = ArgumentParser()
-_PARSER.add_argument("-c", "--cfile", dest="configfile", default=ME+".cfg",
+_PARSER.add_argument("-c", "--cfile", default=ME+".cfg",
                      help="Configuration file", metavar="FILE")
 _PARSER.add_argument("-s", "--servername", dest="servername", default="localhost", required=False,
                      help="zabbix server or proxy name")
@@ -31,7 +30,7 @@ _PARSER.add_argument("-k", "--key", dest="key", required=True,
 ARGS = _PARSER.parse_args()
 
 L = []
-with open(CONFIG, 'rt') as _f:
+with open(ARGS.cfile, 'rt') as _f:
     for line in _f:
         c = line.rstrip()
         dns, port = c.split(':')

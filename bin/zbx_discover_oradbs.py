@@ -113,7 +113,7 @@ $ORACLE_HOME/bin/lsnrctl status
     errors = 0
     results = []
     for member in config['members'].split(','):
-        ssh = subprocess.Popen(["ssh", "-q", member],
+        ssh = subprocess.Popen(["ssh", "-qT", member],
                                stdin=subprocess.PIPE,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
@@ -246,6 +246,8 @@ def main():
     errors = 0
 
     for row in config:
+        if _args.verbosity > 1:
+            print(row)
         if row['protocol'] == "ssh":
             lsnrstats.append(get_ssh(row))
         elif row['protocol'] in ['psr', 'psr/ssl']:
@@ -263,23 +265,24 @@ def main():
     databases = []
 
     for member in lsnrstats:
-        print("errors member {}: {}".format(member[1]['members'], member[0]))
+        if _args.verbosity > 1:
+            print("member results: {}".format(member))
         errors += member[0]
 
-        if _args.verbosity > 1:
-            print("member config {}".format(member[1]))
         instances = []
 
         for lines in member[2]:
             for line in lines.split('\n'):
+                if _args.verbosity > 1:
+                    print("line: {}".format(line))
                 if "Instance" in line:
                     if "READY" in line:
                         if _args.verbosity > 2:
                             print("line: {}".format(line))
                         instance = line.split('"')[1]
 
-                        if _args.verbosity > 2:
-                            print(instance)
+                        if _args.verbosity > 0:
+                            print("instance {}".format(instance))
                         instances.append(instance)
         sorti = sorted(list(set(instances)))
 

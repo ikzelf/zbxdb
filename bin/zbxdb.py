@@ -383,6 +383,9 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                 check_files.append(
                     {'name': LOG_CONF, 'lmod': os.path.getmtime(LOG_CONF)})
 
+            if not os.path.exists(_args.configfile):
+                LOGGER.warning("Config file (%s) not there ... time to quit", _args.configfile)
+                sys.exit(0)
             _config = get_config(_args.configfile, ME)
             _config['password'] = decrypted(_config['password_enc'])
 
@@ -806,7 +809,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
             sleep_c += 1
 
             if sleep_c >= 10:
-                if sleep_s <= 301:
+                if sleep_s <= 290:
                     # don't sleep longer than 5 mins after connect failures
                     sleep_s += 10
                 sleep_c = 0
