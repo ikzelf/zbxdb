@@ -77,7 +77,7 @@ def connect(_db, _c):
 
     return _db.connect(server=_c['server'],
                        database=_c['db_name'],
-                       port=_c['server_port'],
+                       port=int(_c['server_port']),
                        auth=auth,
                        cafile=cafile,
                        user=_c['username'],
