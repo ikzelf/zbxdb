@@ -51,6 +51,8 @@ resulting in log to stdout and datafile in specified out_dir/{configfile}.zbx
 - `bin/zbxdb_sender`
 - `bin/zbxdb_sender.py`
 - `bin/zbxdb_starter`
+# contributions / pull requests are VERY welcome
+please, make sure that if you contribute, that you don't add queries that require an extra license, like Oracle diagnostics or tuning packs. Also, add the additions to all versions possible so the checks are a bit consistent over the releases (if possible)
 
 # database config files examples
 
