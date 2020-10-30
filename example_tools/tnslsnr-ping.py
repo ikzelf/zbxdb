@@ -57,7 +57,6 @@ def getVersion(cmd):
     TNSPacket[1] = pckl[1]
     TNSPacket[24] = cmdl[0]
     TNSPacket[25] = cmdl[1]
-    # print(cmd)
 
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -78,7 +77,7 @@ def getVersion(cmd):
 
             return vsnnum[0], err[0], version, ela
     except:
-        return 0, "12541", "notfound"
+        return 0, "12541", "notfound", 0
 
 
 PARSER = ArgumentParser()
