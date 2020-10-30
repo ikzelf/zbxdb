@@ -72,7 +72,6 @@ def getVersion(cmd):
         ela = round((timer() - _start)*1000)
         if "VSNNUM" in str(data):
             rectxt = (ParseNestedParen(str(data), 0))
-            print(rectxt)
             vsnnum = re.findall(r'(?<=VSNNUM=).+?(?=\))',
                      str(rectxt), flags=re.IGNORECASE)
             err = re.findall(r'(?<=ERR=).+?(?=\))',
