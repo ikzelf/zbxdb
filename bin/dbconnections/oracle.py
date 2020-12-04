@@ -17,7 +17,7 @@ def current_role(conn, info):
             _c_role = _data[0]
         except conn.DatabaseError as dberr:
             _error, = dberr.args
-            LOGGER.debug('determine db_role failed %s with %s', _error.code,
+            LOGGER.error('determine db_role failed %s with %s', _error.code,
                          dberr.args[0])
             _c_role = 'notknown'
     else:
