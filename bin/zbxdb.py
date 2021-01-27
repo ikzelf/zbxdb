@@ -261,9 +261,398 @@ def load_db_connections(_c):
     return db_connections
 
 
+def connection_loop(connect_info, _args, _conn, _config,
+                    sys_files,
+                    check_files, db_connections,
+                    start_time, open_time, con_mins,
+                    conn_counter,
+                    conn_errors,
+                    query_counter,
+                    query_errors,
+                    conn_has_cancel,
+                    driver_errors,
+                    db_driver
+                    ):
+    if not os.path.exists(_args.configfile):
+        LOGGER.warning("Config file (%s) gone ... time to quit",
+                       _args.configfile)
+        sys.exit(0)
+    LOGGER.debug("%s while True\n", ME)
+
+    if connect_info['db_role'] != db_connections.current_role(
+            _conn, connect_info):
+        LOGGER.info("db_role changed from %s to %s",
+                    connect_info['db_role'],
+                    db_connections.current_role(_conn,
+                                                connect_info))
+        # re connect to get the correct monitoring config again
+
+        return   # break
+    # keep this to compare for when to dump stats
+    now_run = int(time.time())
+    run_timer = timer()  # keep this to compare for when to
+    # dump stats
+    # loading checks from the various checkfiles:
+    need_to_load = "no"
+
+    # pylint: disable=consider-using-enumerate
+
+    for i in range(len(check_files)):  # at 0 - sys_files is
+        # the script itself
+        try:
+            current_lmod = os.path.getmtime(check_files[i]['name'])
+        except OSError as _e:
+            LOGGER.warning("%s: %s\n",
+                           check_files[i]['name'], _e.strerror)
+            # ignore the error, maybe temporary due to an update
+            current_lmod = check_files[i]['lmod']
+
+        if check_files[i]['lmod'] != current_lmod:
+            if i < sys_files:  # it is the script,
+                # a module or LOG_CONF that changed
+                LOGGER.warning("%s changed, from %s to %s "
+                               "restarting ...\n",
+                               check_files[i]['name'],
+                               time.ctime(check_files[i]['lmod']),
+                               time.ctime(current_lmod))
+                os.execv(__file__, sys.argv)
+            else:
+                if check_files[i]['lmod'] == 0:
+                    LOGGER.info("checks loading %s\n",
+                                check_files[i]['name'])
+                    need_to_load = "yes"
+                else:
+                    LOGGER.warning("checks changed, reload %s\n",
+                                   check_files[i]['name'])
+                    need_to_load = "yes"
+
+    if need_to_load == "yes":
+        to_outfile(_config, ME + "[version]", VERSION)
+        to_outfile(
+            _config, ME + "[config,db_type]", _config['db_type'])
+        to_outfile(
+            _config, ME + "[config,db_driver]",
+            _config['db_driver'])
+        to_outfile(
+            _config, ME + "[config,instance_type]",
+            _config['instance_type'])
+        to_outfile(_config, ME + "[conn,db_role]",
+                   connect_info['db_role'])
+        to_outfile(
+            _config, ME + "[conn,instance_type]",
+            connect_info['instance_type'])
+        to_outfile(_config, ME + "[conn,dbversion]",
+                   connect_info['dbversion'])
+        to_outfile(
+            _config, ME + "[connect,instance_name]",
+            connect_info['iname'])
+        # sometimes the instance_name query follows within a second
+        # missing event so give it some more time
+        time.sleep(3)
+        objects_list = []
+        sections_list = []
+        file_list = []
+        all_checks = []
+
+        for i in range(len(check_files)):
+            _e = collections.OrderedDict()
+            _e = {"{#CHECKS_FILE}": i}
+            file_list.append(_e)
+
+        files_json = '{\"data\":'+json.dumps(file_list)+'}'
+        to_outfile(_config, ME+".files.lld", files_json)
+
+        for i in range(sys_files, len(check_files)):
+            # #0 is executable that is also checked for updates
+            # #1 db_connections module
+            # #2 driver_errors module
+            # #3 LOG_CONF if it exists ...
+            # so, skip those and pick the real check_files
+            _checks = configparser.RawConfigParser()
+            try:
+                check_file = open(check_files[i]['name'], 'r')
+                to_outfile(_config, "{}[checks,{},name]".format(ME,
+                                                                i),
+                           check_files[i]['name'])
+                to_outfile(_config, "{}[checks,{},lmod]".format(ME,
+                                                                i),
+                           str(int(os.stat(
+                                check_files[i]['name']).st_mtime)))
+                try:
+                    _checks.read_file(check_file)
+                    check_file.close()
+                    to_outfile(_config, ME + "[checks," + str(i) +
+                               ",status]", 0)
+                except configparser.Error:
+                    to_outfile(_config, ME + "[checks," + str(i) +
+                               ",status]", 13)
+                    LOGGER.critical("file %s has parsing errors "
+                                    "->(13)\n",
+                                    check_files[i]['name'])
+            except IOError as io_error:
+                to_outfile(
+                    _config, ME + "[checks," + str(i) + ",status]",
+                    11)
+                LOGGER.critical("file %s IOError %s %s ->(11)\n",
+                                check_files[i]['name'],
+                                io_error.errno, io_error.strerror)
+
+            check_files[i]['lmod'] = os.stat(
+                check_files[i]['name']).st_mtime
+            all_checks.append(_checks)
+
+            for section in sorted(_checks.sections()):
+                sec_mins = int(_checks.get(section, "minutes"))
+
+                if sec_mins == 0:
+                    LOGGER.info(
+                        "%s run at connect only\n", section)
+                else:
+                    LOGGER.info("%s run every %d minutes\n",
+                                section, sec_mins)
+                # dump own discovery items of the queries per
+                # section
+                _e = collections.OrderedDict()
+                _e = {"{#SECTION}": section}
+                sections_list.append(_e)
+                _x = dict(_checks.items(section))
+
+                for key, sqls in sorted(_x.items()):
+                    if sqls and key != "minutes":
+                        _d = collections.OrderedDict()
+                        _d = {"{#SECTION}": section, "{#KEY}": key}
+                        objects_list.append(_d)
+                        LOGGER.info("%s: %s\n",
+                                    key,
+                                    sqls[0: 60].
+                                    replace('\n',
+                                            ' ').replace('\r',
+                                                         ' '))
+        # checks are loaded now.
+        sections_json = '{\"data\":'+json.dumps(sections_list)+'}'
+        LOGGER.debug("lld key: %s json: %s\n",
+                     ME+".lld", sections_json)
+        to_outfile(_config, ME+".section.lld", sections_json)
+        rows_json = '{\"data\":'+json.dumps(objects_list)+'}'
+        LOGGER.debug("lld key: %s json: %s\n",
+                     ME+".lld", rows_json)
+        to_outfile(_config, ME + ".query.lld", rows_json)
+        # sqls can contain multiple statements per key. sqlparse
+        # to split them now. Otherwise use a lot of extra cycles
+        # when splitting at runtime
+        # all_sql { {section, key}: statements }
+        all_sql = {}
+
+        for _checks in all_checks:
+            for section in sorted(_checks.sections()):
+                _x = dict(_checks.items(section))
+
+                for key, sqls in sorted(_x.items()):
+                    if sqls and key != "minutes":
+                        all_sql[(section, key)] = []
+
+                        for statement in sqlparse.split(sqls):
+                            all_sql[(section, key)].append(
+                                statement)
+
+    # checks discovery is also printed
+    #
+    to_outfile(_config, ME + "[uptime]",
+               int(time.time() - start_time))
+    to_outfile(_config, ME + "[opentime]",
+               int(time.time() - open_time))
+
+    # the connect status is only real if executed a query ....
+
+    for _checks in all_checks:
+        for section in sorted(_checks.sections()):
+            section_timer = timer()  # keep this to compare for
+            # when to dump stats
+            sec_mins = int(_checks.get(section, "minutes"))
+
+            if ((con_mins == 0 and sec_mins == 0) or
+                    (sec_mins > 0 and con_mins % sec_mins == 0)):
+                # time to run the checks again from this section
+                _x = dict(_checks.items(section))
+                _cursor = _conn.cursor()
+
+                for key, sqls in sorted(_x.items()):
+                    if sqls and key != "minutes":
+                        LOGGER.debug("%s section: %s key: %s\n",
+                                     ME, section, key)
+                        try:
+                            query_counter += 1
+
+                            if conn_has_cancel:
+                                # pymysql has no cancel but does
+                                # have timeout in connect
+                                sqltimeout = threading.Timer(
+                                    _config['sqltimeout'],
+                                    cancel_sql, [_conn, section,
+                                                 key])
+                                sqltimeout.start()
+                            _start = timer()
+
+                            for statement in all_sql[(section,
+                                                      key)]:
+
+                                LOGGER.debug("%s section: %s "
+                                             "key: %s sql: %s\n",
+                                             ME, section, key,
+                                             statement)
+                                _cursor.execute(statement)
+                            startf = timer()
+                            # output for the last query must
+                            # include the
+                            # output for the preparing queries
+                            # is ignored
+                            #        complete key and value
+                            rows = _cursor.fetchall()
+
+                            if conn_has_cancel:
+                                sqltimeout.cancel()
+
+                            if "discover" in section:
+                                objects_list = []
+
+                                for row in rows:
+                                    _d = collections.OrderedDict()
+
+                                    for col in range(len(
+                                                _cursor.description)):
+                                        _d[_cursor.description[col]
+                                            [0]] = row[col]
+                                    objects_list.append(_d)
+                                rows_json = '{\"data\":' + \
+                                    json.dumps(objects_list)+'}'
+                                LOGGER.debug("DEBUG lld key: %s "
+                                             "json: %s\n", key,
+                                             rows_json)
+                                to_outfile(_config, key, rows_json)
+                                to_outfile(_config, ME +
+                                           "[query," + section +
+                                           "," +
+                                           key + ",status]", 0)
+                            else:
+                                if rows and len(rows[0]) == 2:
+                                    _config['section'] = section
+                                    _config['key'] = key
+
+                                    for row in rows:
+                                        to_outfile(
+                                            _config, row[0],
+                                            row[1])
+                                    to_outfile(_config, ME +
+                                               "[query," +
+                                               section + "," +
+                                               key + ",status]", 0)
+                                elif not rows:
+                                    to_outfile(_config, ME +
+                                               "[query," +
+                                               section + "," +
+                                               key + ",status]", 0)
+                                else:
+                                    LOGGER.critical('key=%s.%s '
+                                                    'ZBXDB-%d: '
+                                                    'SQL format '
+                                                    'error: %s\n',
+                                                    section, key,
+                                                    2,
+                                                    "expect key,"
+                                                    "value pairs")
+                                    to_outfile(_config, ME +
+                                               "[query," +
+                                               section + "," +
+                                               key + ",status]", 2)
+                            _config['section'] = ""
+                            _config['key'] = ""
+                            fetchela = timer() - startf
+                            elapsed_s = timer() - _start
+                            to_outfile(_config, ME + "[query," +
+                                       section + "," +
+                                       key + ",ela]", elapsed_s)
+                            to_outfile(_config, ME + "[query," +
+                                       section + "," +
+                                       key + ",fetch]", fetchela)
+                        # except (db_driver.DatabaseError,
+                            # socket.timeout) as dberr:
+                        except Exception as dberr:
+                            if conn_has_cancel:
+                                sqltimeout.cancel()
+                            ecode, emsg = (
+                                driver_errors.db_errorcode(
+                                    db_driver, dberr))
+
+                            elapsed_s = timer() - _start
+                            query_errors += 1
+                            to_outfile(_config, ME + "[query," +
+                                       section + "," +
+                                       key + ",status]", ecode)
+                            to_outfile(_config, ME + "[query," +
+                                       section + "," +
+                                       key + ",ela]", elapsed_s)
+                            LOGGER.info('key=%s.%s ZBXDB-%s: '
+                                        'Db execution error: %s\n',
+                                        section, key, ecode,
+                                        emsg.strip())
+
+                            if driver_errors.db_error_needs_new_session(
+                                    db_driver, ecode):
+                                raise
+
+                            LOGGER.debug("%s commit\n", ME)
+                            _conn.commit()
+
+                            LOGGER.debug("%s committed\n", ME)
+                # end of a section # time to run the checks
+                # again from this section
+
+                to_outfile(_config, ME + "[query," + section +
+                           ",,ela]",
+                           timer() - section_timer)
+    # release locks that might have been taken
+
+    LOGGER.debug("%s commit 2\n", ME)
+
+    _conn.commit()
+
+    LOGGER.debug("%s committed.\n", ME)
+    # dump metric for summed elapsed time of this run
+    to_outfile(_config, ME + "[query,,,ela]",
+               timer() - run_timer)
+    to_outfile(_config, ME + "[cpu,user]",
+               resource.getrusage(resource.RUSAGE_SELF).ru_utime)
+    to_outfile(_config, ME + "[cpu,sys]",
+               resource.getrusage(resource.RUSAGE_SELF).ru_stime)
+    to_outfile(_config, ME + "[mem,maxrss]",
+               resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    # passed all sections
+    to_outfile(_config, ME + "[connect,status]", 0)
+
+    if ((now_run - start_time) % 3600) == 0:
+        gc.collect()
+        # dump stats
+        LOGGER.info("connect %d times, %d fail; started %d "
+                    "queries, "
+                    "%d fail memrss:%d user:%f sys:%f\n",
+                    conn_counter, conn_errors, query_counter,
+                    query_errors,
+                    resource.getrusage(
+                        resource.RUSAGE_SELF).ru_maxrss,
+                    resource.getrusage(
+                        resource.RUSAGE_SELF).ru_utime,
+                    resource.getrusage(
+                        resource.RUSAGE_SELF).ru_stime)
+    # try to keep activities on the same starting second:
+    sleep_time = 60 - ((int(time.time()) - start_time) % 60)
+
+    LOGGER.debug("Sleeping for %d seconds\n", sleep_time)
+    time.sleep(sleep_time)
+    con_mins = con_mins + 1   # not really mins since the checks
+    # could have taken longer than 1 minute to complete
+
+
 def main():
-    # pylint:
-    # disable=too-many-statements,too-many-branches,too-many-locals
     """main routine"""
 
     if int(platform.python_version().split('.')[0]) < 3:
@@ -417,8 +806,6 @@ def main():
             _config = get_config(_args.configfile, ME)
             _config['password'] = decrypted(_config['password_enc'])
 
-            _start = timer()
-
             #  hide password, hoping username != password ;-)
             LOGGER.info('connecting to %s\n',
                         db_connections.connect_string(_config).replace(
@@ -430,7 +817,6 @@ def main():
                 conn_has_cancel = True
             LOGGER.info(_conn)
             conn_counter += 1
-            _cursor = _conn.cursor()
             connect_info = db_connections.connection_info(_conn)
             LOGGER.info('connected db_url %s type %s db_role %s version %s\n'
                         '%s user %s %s sid,serial %d,%d instance %s as %s ' +
@@ -483,387 +869,22 @@ def main():
             open_time = int(time.time())
 
             while True:
-                if not os.path.exists(_args.configfile):
-                    LOGGER.warning("Config file (%s) gone ... time to quit",
-                                   _args.configfile)
-                    sys.exit(0)
-                LOGGER.debug("%s while True\n", ME)
-
-                if connect_info['db_role'] != db_connections.current_role(
-                        _conn, connect_info):
-                    LOGGER.info("db_role changed from %s to %s",
-                                connect_info['db_role'],
-                                db_connections.current_role(_conn,
-                                                            connect_info))
-                    # re connect to get the correct monitoring config again
-
-                    break
-                # keep this to compare for when to dump stats
-                now_run = int(time.time())
-                run_timer = timer()  # keep this to compare for when to
-                # dump stats
-                # loading checks from the various checkfiles:
-                need_to_load = "no"
-
-                # pylint: disable=consider-using-enumerate
-
-                for i in range(len(check_files)):  # at 0 - sys_files is
-                    # the script itself
-                    try:
-                        current_lmod = os.path.getmtime(check_files[i]['name'])
-                    except OSError as _e:
-                        LOGGER.warning("%s: %s\n",
-                                       check_files[i]['name'], _e.strerror)
-                        # ignore the error, maybe temporary due to an update
-                        current_lmod = check_files[i]['lmod']
-
-                    if check_files[i]['lmod'] != current_lmod:
-                        if i < sys_files:  # it is the script,
-                            # a module or LOG_CONF that changed
-                            LOGGER.warning("%s changed, from %s to %s "
-                                           "restarting ...\n",
-                                           check_files[i]['name'],
-                                           time.ctime(check_files[i]['lmod']),
-                                           time.ctime(current_lmod))
-                            os.execv(__file__, sys.argv)
-                        else:
-                            if check_files[i]['lmod'] == 0:
-                                LOGGER.info("checks loading %s\n",
-                                            check_files[i]['name'])
-                                need_to_load = "yes"
-                            else:
-                                LOGGER.warning("checks changed, reload %s\n",
-                                               check_files[i]['name'])
-                                need_to_load = "yes"
-
-                if need_to_load == "yes":
-                    to_outfile(_config, ME + "[version]", VERSION)
-                    to_outfile(
-                        _config, ME + "[config,db_type]", _config['db_type'])
-                    to_outfile(
-                        _config, ME + "[config,db_driver]",
-                        _config['db_driver'])
-                    to_outfile(
-                        _config, ME + "[config,instance_type]",
-                        _config['instance_type'])
-                    to_outfile(_config, ME + "[conn,db_role]",
-                               connect_info['db_role'])
-                    to_outfile(
-                        _config, ME + "[conn,instance_type]",
-                        connect_info['instance_type'])
-                    to_outfile(_config, ME + "[conn,dbversion]",
-                               connect_info['dbversion'])
-                    to_outfile(
-                        _config, ME + "[connect,instance_name]",
-                        connect_info['iname'])
-                    # sometimes the instance_name query follows within a second
-                    # missing event so give it some more time
-                    time.sleep(3)
-                    objects_list = []
-                    sections_list = []
-                    file_list = []
-                    all_checks = []
-
-                    for i in range(len(check_files)):
-                        _e = collections.OrderedDict()
-                        _e = {"{#CHECKS_FILE}": i}
-                        file_list.append(_e)
-
-                    files_json = '{\"data\":'+json.dumps(file_list)+'}'
-                    to_outfile(_config, ME+".files.lld", files_json)
-
-                    for i in range(sys_files, len(check_files)):
-                        # #0 is executable that is also checked for updates
-                        # #1 db_connections module
-                        # #2 driver_errors module
-                        # #3 LOG_CONF if it exists ...
-                        # so, skip those and pick the real check_files
-                        _checks = configparser.RawConfigParser()
-                        try:
-                            check_file = open(check_files[i]['name'], 'r')
-                            to_outfile(_config, "{}[checks,{},name]".format(ME,
-                                                                            i),
-                                       check_files[i]['name'])
-                            to_outfile(_config, "{}[checks,{},lmod]".format(ME,
-                                                                            i),
-                                       str(int(os.stat(
-                                           check_files[i]['name']).st_mtime)))
-                            try:
-                                _checks.read_file(check_file)
-                                check_file.close()
-                                to_outfile(_config, ME + "[checks," + str(i) +
-                                           ",status]", 0)
-                            except configparser.Error:
-                                to_outfile(_config, ME + "[checks," + str(i) +
-                                           ",status]", 13)
-                                LOGGER.critical("file %s has parsing errors "
-                                                "->(13)\n",
-                                                check_files[i]['name'])
-                        except IOError as io_error:
-                            to_outfile(
-                                _config, ME + "[checks," + str(i) + ",status]",
-                                11)
-                            LOGGER.critical("file %s IOError %s %s ->(11)\n",
-                                            check_files[i]['name'],
-                                            io_error.errno, io_error.strerror)
-
-                        check_files[i]['lmod'] = os.stat(
-                            check_files[i]['name']).st_mtime
-                        all_checks.append(_checks)
-
-                        for section in sorted(_checks.sections()):
-                            sec_mins = int(_checks.get(section, "minutes"))
-
-                            if sec_mins == 0:
-                                LOGGER.info(
-                                    "%s run at connect only\n", section)
-                            else:
-                                LOGGER.info("%s run every %d minutes\n",
-                                            section, sec_mins)
-                            # dump own discovery items of the queries per
-                            # section
-                            _e = collections.OrderedDict()
-                            _e = {"{#SECTION}": section}
-                            sections_list.append(_e)
-                            _x = dict(_checks.items(section))
-
-                            for key, sqls in sorted(_x.items()):
-                                if sqls and key != "minutes":
-                                    _d = collections.OrderedDict()
-                                    _d = {"{#SECTION}": section, "{#KEY}": key}
-                                    objects_list.append(_d)
-                                    LOGGER.info("%s: %s\n",
-                                                key,
-                                                sqls[0: 60].
-                                                replace('\n',
-                                                        ' ').replace('\r',
-                                                                     ' '))
-                    # checks are loaded now.
-                    sections_json = '{\"data\":'+json.dumps(sections_list)+'}'
-                    LOGGER.debug("lld key: %s json: %s\n",
-                                 ME+".lld", sections_json)
-                    to_outfile(_config, ME+".section.lld", sections_json)
-                    rows_json = '{\"data\":'+json.dumps(objects_list)+'}'
-                    LOGGER.debug("lld key: %s json: %s\n",
-                                 ME+".lld", rows_json)
-                    to_outfile(_config, ME + ".query.lld", rows_json)
-                    # sqls can contain multiple statements per key. sqlparse
-                    # to split them now. Otherwise use a lot of extra cycles
-                    # when splitting at runtime
-                    # all_sql { {section, key}: statements }
-                    all_sql = {}
-
-                    for _checks in all_checks:
-                        for section in sorted(_checks.sections()):
-                            _x = dict(_checks.items(section))
-
-                            for key, sqls in sorted(_x.items()):
-                                if sqls and key != "minutes":
-                                    all_sql[(section, key)] = []
-
-                                    for statement in sqlparse.split(sqls):
-                                        all_sql[(section, key)].append(
-                                            statement)
-
-                # checks discovery is also printed
-                #
-                to_outfile(_config, ME + "[uptime]",
-                           int(time.time() - start_time))
-                to_outfile(_config, ME + "[opentime]",
-                           int(time.time() - open_time))
-
-                # the connect status is only real if executed a query ....
-
-                for _checks in all_checks:
-                    for section in sorted(_checks.sections()):
-                        section_timer = timer()  # keep this to compare for
-                        # when to dump stats
-                        sec_mins = int(_checks.get(section, "minutes"))
-
-                        if ((con_mins == 0 and sec_mins == 0) or
-                                (sec_mins > 0 and con_mins % sec_mins == 0)):
-                            # time to run the checks again from this section
-                            _x = dict(_checks.items(section))
-                            _cursor = _conn.cursor()
-
-                            for key, sqls in sorted(_x.items()):
-                                if sqls and key != "minutes":
-                                    LOGGER.debug("%s section: %s key: %s\n",
-                                                 ME, section, key)
-                                    try:
-                                        query_counter += 1
-
-                                        if conn_has_cancel:
-                                            # pymysql has no cancel but does
-                                            # have timeout in connect
-                                            sqltimeout = threading.Timer(
-                                                _config['sqltimeout'],
-                                                cancel_sql, [_conn, section,
-                                                             key])
-                                            sqltimeout.start()
-                                        _start = timer()
-
-                                        for statement in all_sql[(section,
-                                                                  key)]:
-
-                                            LOGGER.debug("%s section: %s "
-                                                         "key: %s sql: %s\n",
-                                                         ME, section, key,
-                                                         statement)
-                                            _cursor.execute(statement)
-                                        startf = timer()
-                                        # output for the last query must
-                                        # include the
-                                        # output for the preparing queries
-                                        # is ignored
-                                        #        complete key and value
-                                        rows = _cursor.fetchall()
-
-                                        if conn_has_cancel:
-                                            sqltimeout.cancel()
-
-                                        if "discover" in section:
-                                            objects_list = []
-
-                                            for row in rows:
-                                                _d = collections.OrderedDict()
-
-                                                for col in range(len(
-                                                         _cursor.description)):
-                                                    _d[_cursor.description[col]
-                                                       [0]] = row[col]
-                                                objects_list.append(_d)
-                                            rows_json = '{\"data\":' + \
-                                                json.dumps(objects_list)+'}'
-                                            LOGGER.debug("DEBUG lld key: %s "
-                                                         "json: %s\n", key,
-                                                         rows_json)
-                                            to_outfile(_config, key, rows_json)
-                                            to_outfile(_config, ME +
-                                                       "[query," + section +
-                                                       "," +
-                                                       key + ",status]", 0)
-                                        else:
-                                            if rows and len(rows[0]) == 2:
-                                                _config['section'] = section
-                                                _config['key'] = key
-
-                                                for row in rows:
-                                                    to_outfile(
-                                                        _config, row[0],
-                                                        row[1])
-                                                to_outfile(_config, ME +
-                                                           "[query," +
-                                                           section + "," +
-                                                           key + ",status]", 0)
-                                            elif not rows:
-                                                to_outfile(_config, ME +
-                                                           "[query," +
-                                                           section + "," +
-                                                           key + ",status]", 0)
-                                            else:
-                                                LOGGER.critical('key=%s.%s '
-                                                                'ZBXDB-%d: '
-                                                                'SQL format '
-                                                                'error: %s\n',
-                                                                section, key,
-                                                                2,
-                                                                "expect key,"
-                                                                "value pairs")
-                                                to_outfile(_config, ME +
-                                                           "[query," +
-                                                           section + "," +
-                                                           key + ",status]", 2)
-                                        _config['section'] = ""
-                                        _config['key'] = ""
-                                        fetchela = timer() - startf
-                                        elapsed_s = timer() - _start
-                                        to_outfile(_config, ME + "[query," +
-                                                   section + "," +
-                                                   key + ",ela]", elapsed_s)
-                                        to_outfile(_config, ME + "[query," +
-                                                   section + "," +
-                                                   key + ",fetch]", fetchela)
-                                    # except (db_driver.DatabaseError,
-                                        # socket.timeout) as dberr:
-                                    except Exception as dberr:
-                                        if conn_has_cancel:
-                                            sqltimeout.cancel()
-                                        ecode, emsg = (
-                                            driver_errors.db_errorcode(
-                                                db_driver, dberr))
-
-                                        elapsed_s = timer() - _start
-                                        query_errors += 1
-                                        to_outfile(_config, ME + "[query," +
-                                                   section + "," +
-                                                   key + ",status]", ecode)
-                                        to_outfile(_config, ME + "[query," +
-                                                   section + "," +
-                                                   key + ",ela]", elapsed_s)
-                                        LOGGER.info('key=%s.%s ZBXDB-%s: '
-                                                    'Db execution error: %s\n',
-                                                    section, key, ecode,
-                                                    emsg.strip())
-
-                                        if driver_errors.db_error_needs_new_session(db_driver,
-                                                                                    ecode):
-                                            raise
-
-                                        LOGGER.debug("%s commit\n", ME)
-                                        _conn.commit()
-
-                                        LOGGER.debug("%s committed\n", ME)
-                            # end of a section # time to run the checks
-                            # again from this section
-
-                            to_outfile(_config, ME + "[query," + section +
-                                       ",,ela]",
-                                       timer() - section_timer)
-                # release locks that might have been taken
-
-                LOGGER.debug("%s commit 2\n", ME)
-
-                _conn.commit()
-
-                LOGGER.debug("%s committed.\n", ME)
-                # dump metric for summed elapsed time of this run
-                to_outfile(_config, ME + "[query,,,ela]",
-                           timer() - run_timer)
-                to_outfile(_config, ME + "[cpu,user]",
-                           resource.getrusage(resource.RUSAGE_SELF).ru_utime)
-                to_outfile(_config, ME + "[cpu,sys]",
-                           resource.getrusage(resource.RUSAGE_SELF).ru_stime)
-                to_outfile(_config, ME + "[mem,maxrss]",
-                           resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-                # passed all sections
-                to_outfile(_config, ME + "[connect,status]", 0)
-
-                if ((now_run - start_time) % 3600) == 0:
-                    gc.collect()
-                    # dump stats
-                    LOGGER.info("connect %d times, %d fail; started %d "
-                                "queries, "
-                                "%d fail memrss:%d user:%f sys:%f\n",
-                                conn_counter, conn_errors, query_counter,
+                connection_loop(connect_info, _args, _conn, _config,
+                                sys_files,
+                                check_files, db_connections,
+                                start_time, open_time, con_mins,
+                                conn_counter,
+                                conn_errors,
+                                query_counter,
                                 query_errors,
-                                resource.getrusage(
-                                    resource.RUSAGE_SELF).ru_maxrss,
-                                resource.getrusage(
-                                    resource.RUSAGE_SELF).ru_utime,
-                                resource.getrusage(
-                                    resource.RUSAGE_SELF).ru_stime)
-                # try to keep activities on the same starting second:
-                sleep_time = 60 - ((int(time.time()) - start_time) % 60)
-
-                LOGGER.debug("Sleeping for %d seconds\n", sleep_time)
-                time.sleep(sleep_time)
-                con_mins = con_mins + 1   # not really mins since the checks
+                                conn_has_cancel,
+                                driver_errors,
+                                db_driver
+                                )
                 # could have taken longer than 1 minute to complete
             # end while True
         except Exception as dberr:
             err_code, err_msg = driver_errors.db_errorcode(db_driver, dberr)
-            elapsed_s = timer() - _start
             if err_code == 0:
                 # something fishy happened .... driver problems?
                 to_outfile(_config, ME + "[connect,status]", err_msg[:200])
