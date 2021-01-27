@@ -12,7 +12,9 @@
  NOTE: a section whose name contains 'discover' is considered to be handled
            as a special case for LLD -> json arrays
  NOTE: consider using Oracle Wallet instead of coding credentials in config
- NOTE: run as a regular database client, not a special account like root or oracle
+ NOTE: run as a regular database client,
+ not a special account like root or oracle
+ NOT A SPECIAL ACCOUNT LIKE ROOT OR ORACLE
 """
 import base64
 import collections
@@ -35,7 +37,7 @@ from timeit import default_timer as timer
 
 import sqlparse
 
-VERSION = "2.08"
+VERSION = "2.10"
 
 
 def setup_logging(
@@ -58,7 +60,8 @@ def setup_logging(
             try:
                 logging.config.dictConfig(config)
             except ValueError as _e:
-                print("Error during reading log configuration")
+                print("Error during reading log configuration {}".format
+                      (_e.strerror))
                 print(config)
                 print("Does the path for filename exist?")
                 raise
@@ -101,12 +104,14 @@ def to_outfile(_c, ikey, values):
                      _c['ME'],
                      _c['key'], _c['section']
                      )
-        _c['OUTF'].write(_c['hostname'] + " query[" + _c['section']+","+_c['key'] + ",status] " +
+        _c['OUTF'].write(_c['hostname'] + " query[" + _c['section'] +
+                         ","+_c['key'] + ",status] " +
                          str(timestamp) + " " + "TypeError" + "\n")
     _c['OUTF'].flush()
 
 
-class MyConfigParser(configparser.RawConfigParser):  # pylint: disable=too-many-ancestors
+class MyConfigParser(configparser.RawConfigParser):
+    # pylint: disable=too-many-ancestors
     """strip comments"""
 
     def __init__(self):
@@ -139,9 +144,12 @@ def get_config_par(_c, _parameter, _me):
 
 def get_config(filename, _me):
     """read the specified configuration file"""
-    config = {'db_url': "", 'db_type': "", 'db_driver': "", 'instance_type': "rdbms",
-              'server': "", 'db_name': "", 'instance_name': "", 'server_port': "",
-              'username': "scott", 'password': "", 'role': "normal", 'omode': 0,
+    config = {'db_url': "", 'db_type': "", 'db_driver': "",
+              'instance_type': "rdbms",
+              'server': "", 'db_name': "", 'instance_name': "",
+              'server_port': "",
+              'username': "scott", 'password': "", 'role': "normal",
+              'omode': 0,
               'out_dir': "", 'out_file': "", 'hostname': "", 'checks_dir': "",
               'site_checks': "", 'password_enc': "", 'OUTF': 0, 'ME': _me,
               'cafile': "",
@@ -165,7 +173,8 @@ def get_config(filename, _me):
     config['password_enc'] = bytearray(enc, 'utf-8')
 
     config['out_file'] = os.path.join(config['out_dir'],
-                                      str(os.path.splitext(os.path.basename(filename))[0]) +
+                                      str(os.path.splitext(
+                                          os.path.basename(filename))[0]) +
                                       ".zbx")
 
     if config['site_checks'] == "NONE":
@@ -201,9 +210,12 @@ def load_driver(_c):
     try:
         _db_driver = __import__(_c['db_driver'])
         LOGGER.info(_db_driver)
-    except:
-        LOGGER.critical("%s supported will be oracle(cx_Oracle), postgres(psycopg2), "
-                        "mysql(mysql.connector), mssql(pymssql/_mssql), db2(ibm_db_dbi)\n",
+    except ImportError:
+        LOGGER.critical("%s supported will be oracle(cx_Oracle),\n" +
+                        "postgres(psycopg2),\n" +
+                        "mysql(mysql.connector),\n" +
+                        "mssql(pymssql/_mssql),\n" +
+                        "db2(ibm_db_dbi)\n",
                         _c['ME'])
         LOGGER.critical(
             "%s tested are oracle(cx_Oracle), postgres(psycopg2)\n", _c['ME'])
@@ -221,7 +233,7 @@ def load_driver_errors(_c):
     try:
         driver_errors = importlib.import_module(
             "drivererrors." + _c['db_driver'])
-    except:
+    except ImportError:
         LOGGER.critical("Failed to load driver error routines\n")
         LOGGER.critical("Looked in %s\n", sys.path, exc_info=True)
         raise
@@ -237,7 +249,7 @@ def load_db_connections(_c):
     try:
         db_connections = importlib.import_module(
             "dbconnections." + _c['db_type'])
-    except:
+    except ImportError:
         LOGGER.critical(
             "Failed to load dbconnections routines for %s\n", _c['db_type'])
         LOGGER.critical("Looked in %s\n", sys.path, exc_info=True)
@@ -249,7 +261,9 @@ def load_db_connections(_c):
     return db_connections
 
 
-def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-locals
+def main():
+    # pylint:
+    # disable=too-many-statements,too-many-branches,too-many-locals
     """main routine"""
 
     if int(platform.python_version().split('.')[0]) < 3:
@@ -260,9 +274,10 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
     start_time = int(time.time())
     _parser = ArgumentParser()
     _parser.add_argument("-c", "--cfile", dest="configfile", default=ME+".cfg",
-                         help="Configuration file", metavar="FILE", required=True)
+                         help="Configuration file", metavar="FILE",
+                         required=True)
     _parser.add_argument("-v", "--verbosity", action="count", default=0,
-                         help="increase output verbosity overriding the default")
+                         help="increase log verbosity overriding the default")
     _parser.add_argument("-p", "--parameter", action="store",
                          help="show parameter from configfile")
     _args = _parser.parse_args()
@@ -274,18 +289,22 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
     if _args.parameter:
         if _args.parameter == 'password':
             print('parameter {}: {}\n'.format(_args.parameter,
-                                              decrypted(_config[_args.parameter+'_enc'])))
+                                              decrypted(
+                                                  _config[_args.parameter +
+                                                          '_enc'])))
         else:
             print('parameter {}: {}\n'.format(
                 _args.parameter, _config[_args.parameter]))
         sys.exit(0)
 
     if _args.verbosity:
-        newLevel = logging.getLogger().getEffectiveLevel() - (_args.verbosity*10)
+        newLevel = (logging.getLogger().getEffectiveLevel() -
+                    (_args.verbosity*10))
 
         if newLevel < 0:
             newLevel = 0
-        LOGGER.warning("Changing loglevel from %d to %d", logging.getLogger().getEffectiveLevel(),
+        LOGGER.warning("Changing loglevel from %d to %d",
+                       logging.getLogger().getEffectiveLevel(),
                        newLevel)
         logging.getLogger().setLevel(newLevel)
     LOGGER.debug("log level %d", logging.getLogger().getEffectiveLevel())
@@ -299,9 +318,10 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
     # we need the password ....
     _config['password'] = decrypted(_config['password_enc'])
 
-# add a few seconds extra to allow the driver timeout handling to do the it's job.
+# add a few seconds extra to allow the driver timeout handling to do it's job.
 # for example, cx_oracle has a cancel routine that we call after a timeout. If
-# there is a network problem, the cancel gets a ORA-12152: TNS:unable to send break message
+# there is a network problem, the cancel gets a
+# ORA-12152: TNS:unable to send break message
 # setting this defaulttimeout should speed this up
     socket.setdefaulttimeout(_config['sqltimeout']+3)
 
@@ -312,7 +332,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
     if not os.path.exists(
             os.path.join(_config['checks_dir'], _config['db_type'])):
         raise ValueError("db_type "+_config['db_type'] +
-                         " does not exist in the "+_config['checks_dir']+" directory")
+                         " does not exist in the " +
+                         _config['checks_dir']+" directory")
     db_driver = load_driver(_config)
     driver_errors = load_driver_errors(_config)
     db_connections = load_db_connections(_config)
@@ -322,8 +343,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
     LOGGER.info("hostname in zabbix: %s", _config['hostname'])
     #  hide password, hoping username != password ;-)
     LOGGER.info("connect string    : %s\n",
-                db_connections.connect_string(_config).replace(_config['password'],
-                                                               '******'))
+                db_connections.connect_string(_config).replace(
+                    _config['password'], '******'))
     LOGGER.info('using sql_timeout : %ds\n', _config['sqltimeout'])
     LOGGER.info("out_file          : %s\n", _config['out_file'])
 
@@ -349,9 +370,11 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
 
     for i in range(sys_files):
         to_outfile(_config,
-                   "{}[checks,{},name]".format(ME, i), check_files[i]['name'])
+                   "{}[checks,{},name]".format(ME, i),
+                   check_files[i]['name'])
         to_outfile(_config,
-                   "{}[checks,{},lmod]".format(ME, i), int(check_files[i]['lmod']))
+                   "{}[checks,{},lmod]".format(ME, i),
+                   int(check_files[i]['lmod']))
 
     conn_counter = 0
     conn_errors = 0
@@ -365,15 +388,19 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
     while True:
         try:
             for i in range(sys_files):
-                if check_files[i]['lmod'] != os.stat(check_files[i]['name']).st_mtime:
+                mtime = os.stat(check_files[i]['name']).st_mtime
+                if check_files[i]['lmod'] != mtime:
                     LOGGER.warning("%s Changed, from %s to %s restarting ..\n",
                                    check_files[i]['name'],
                                    time.ctime(check_files[i]['lmod']),
-                                   time.ctime(os.path.getmtime(check_files[i]['name'])))
+                                   time.ctime(os.path.getmtime(
+                                       check_files[i]['name']))
+                                   )
                     os.execv(__file__, sys.argv)
 
-            # reset list in case of a just new connection that reloads the config
-            check_files = [{'name': __file__, 'lmod': os.path.getmtime(__file__)},
+            # reset list in case of a new connection that reloads the config
+            check_files = [{'name': __file__,
+                            'lmod': os.path.getmtime(__file__)},
                            {'name': db_connections.__file__,
                             'lmod': os.path.getmtime(db_connections.__file__)},
                            {'name': driver_errors.__file__,
@@ -384,7 +411,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                     {'name': LOG_CONF, 'lmod': os.path.getmtime(LOG_CONF)})
 
             if not os.path.exists(_args.configfile):
-                LOGGER.warning("Config file (%s) not there ... time to quit", _args.configfile)
+                LOGGER.warning("Config file (%s) not there ... time to quit",
+                               _args.configfile)
                 sys.exit(0)
             _config = get_config(_args.configfile, ME)
             _config['password'] = decrypted(_config['password_enc'])
@@ -393,8 +421,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
 
             #  hide password, hoping username != password ;-)
             LOGGER.info('connecting to %s\n',
-                        db_connections.connect_string(_config).replace(_config['password'],
-                                                                       '******'))
+                        db_connections.connect_string(_config).replace(
+                            _config['password'], '******'))
             conn_has_cancel = False
             _conn = db_connections.connect(db_driver, _config)
 
@@ -405,7 +433,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
             _cursor = _conn.cursor()
             connect_info = db_connections.connection_info(_conn)
             LOGGER.info('connected db_url %s type %s db_role %s version %s\n'
-                        '%s user %s %s sid,serial %d,%d instance %s as %s cancel:%s\n',
+                        '%s user %s %s sid,serial %d,%d instance %s as %s ' +
+                        'cancel:%s\n',
                         _config['db_url'], connect_info['instance_type'],
                         connect_info['db_role'],
                         connect_info['dbversion'],
@@ -419,11 +448,13 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
             if connect_info['db_role'] in ["PHYSICAL STANDBY", "SLAVE"]:
                 checks_file = os.path.join(_config['checks_dir'],
                                            _config['db_type'], "standby" +
-                                           "." + connect_info['dbversion'] + ".cfg")
+                                           "." + connect_info['dbversion'] +
+                                           ".cfg")
             else:
                 checks_file = os.path.join(_config['checks_dir'],
                                            _config['db_type'],
-                                           connect_info['db_role'].lower() + "." +
+                                           connect_info['db_role'].lower() +
+                                           "." +
                                            connect_info['dbversion']+".cfg")
 
             _files = [checks_file]
@@ -431,7 +462,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
 
             if _config['site_checks']:
                 for addition in _config['site_checks'].split(","):
-                    addfile = os.path.join(_config['checks_dir'], _config['db_type'],
+                    addfile = os.path.join(_config['checks_dir'],
+                                           _config['db_type'],
                                            addition + ".cfg")
                     check_files.append({'name': addfile, 'lmod': 0})
                     _files.extend([addfile])
@@ -440,7 +472,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
             for checks_file in check_files:
                 if not os.path.exists(checks_file['name']):
                     raise ValueError(
-                        "Configfile " + checks_file['name'] + " does not exist")
+                        "Configfile " + checks_file['name'] +
+                        " does not exist")
             # all checkfiles exist
 
             sleep_c = 0
@@ -451,26 +484,31 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
 
             while True:
                 if not os.path.exists(_args.configfile):
-                    LOGGER.warning("Config file (%s) gone ... time to quit", _args.configfile)
+                    LOGGER.warning("Config file (%s) gone ... time to quit",
+                                   _args.configfile)
                     sys.exit(0)
                 LOGGER.debug("%s while True\n", ME)
 
-                if connect_info['db_role'] != db_connections.current_role(_conn, connect_info):
+                if connect_info['db_role'] != db_connections.current_role(
+                        _conn, connect_info):
                     LOGGER.info("db_role changed from %s to %s",
                                 connect_info['db_role'],
-                                db_connections.current_role(_conn, connect_info))
+                                db_connections.current_role(_conn,
+                                                            connect_info))
                     # re connect to get the correct monitoring config again
 
                     break
                 # keep this to compare for when to dump stats
                 now_run = int(time.time())
-                run_timer = timer()  # keep this to compare for when to dump stats
+                run_timer = timer()  # keep this to compare for when to
+                # dump stats
                 # loading checks from the various checkfiles:
                 need_to_load = "no"
 
                 # pylint: disable=consider-using-enumerate
 
-                for i in range(len(check_files)):  # at 0 - sys_files is the script itself
+                for i in range(len(check_files)):  # at 0 - sys_files is
+                    # the script itself
                     try:
                         current_lmod = os.path.getmtime(check_files[i]['name'])
                     except OSError as _e:
@@ -480,9 +518,10 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                         current_lmod = check_files[i]['lmod']
 
                     if check_files[i]['lmod'] != current_lmod:
-                        if i < sys_files:  # it is the script, a module or LOG_CONF
-                                           # that changed
-                            LOGGER.warning("%s changed, from %s to %s restarting ...\n",
+                        if i < sys_files:  # it is the script,
+                            # a module or LOG_CONF that changed
+                            LOGGER.warning("%s changed, from %s to %s "
+                                           "restarting ...\n",
                                            check_files[i]['name'],
                                            time.ctime(check_files[i]['lmod']),
                                            time.ctime(current_lmod))
@@ -493,7 +532,7 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                                             check_files[i]['name'])
                                 need_to_load = "yes"
                             else:
-                                LOGGER.warning("checks changed, reloading %s\n",
+                                LOGGER.warning("checks changed, reload %s\n",
                                                check_files[i]['name'])
                                 need_to_load = "yes"
 
@@ -502,17 +541,21 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                     to_outfile(
                         _config, ME + "[config,db_type]", _config['db_type'])
                     to_outfile(
-                        _config, ME + "[config,db_driver]", _config['db_driver'])
+                        _config, ME + "[config,db_driver]",
+                        _config['db_driver'])
                     to_outfile(
-                        _config, ME + "[config,instance_type]", _config['instance_type'])
+                        _config, ME + "[config,instance_type]",
+                        _config['instance_type'])
                     to_outfile(_config, ME + "[conn,db_role]",
                                connect_info['db_role'])
                     to_outfile(
-                        _config, ME + "[conn,instance_type]", connect_info['instance_type'])
+                        _config, ME + "[conn,instance_type]",
+                        connect_info['instance_type'])
                     to_outfile(_config, ME + "[conn,dbversion]",
                                connect_info['dbversion'])
                     to_outfile(
-                        _config, ME + "[connect,instance_name]", connect_info['iname'])
+                        _config, ME + "[connect,instance_name]",
+                        connect_info['iname'])
                     # sometimes the instance_name query follows within a second
                     # missing event so give it some more time
                     time.sleep(3)
@@ -538,10 +581,13 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                         _checks = configparser.RawConfigParser()
                         try:
                             check_file = open(check_files[i]['name'], 'r')
-                            to_outfile(_config, "{}[checks,{},name]".format(ME, i),
+                            to_outfile(_config, "{}[checks,{},name]".format(ME,
+                                                                            i),
                                        check_files[i]['name'])
-                            to_outfile(_config, "{}[checks,{},lmod]".format(ME, i),
-                                       str(int(os.stat(check_files[i]['name']).st_mtime)))
+                            to_outfile(_config, "{}[checks,{},lmod]".format(ME,
+                                                                            i),
+                                       str(int(os.stat(
+                                           check_files[i]['name']).st_mtime)))
                             try:
                                 _checks.read_file(check_file)
                                 check_file.close()
@@ -550,11 +596,13 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                             except configparser.Error:
                                 to_outfile(_config, ME + "[checks," + str(i) +
                                            ",status]", 13)
-                                LOGGER.critical("file %s has parsing errors ->(13)\n",
+                                LOGGER.critical("file %s has parsing errors "
+                                                "->(13)\n",
                                                 check_files[i]['name'])
                         except IOError as io_error:
                             to_outfile(
-                                _config, ME + "[checks," + str(i) + ",status]", 11)
+                                _config, ME + "[checks," + str(i) + ",status]",
+                                11)
                             LOGGER.critical("file %s IOError %s %s ->(11)\n",
                                             check_files[i]['name'],
                                             io_error.errno, io_error.strerror)
@@ -572,7 +620,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                             else:
                                 LOGGER.info("%s run every %d minutes\n",
                                             section, sec_mins)
-                            # dump own discovery items of the queries per section
+                            # dump own discovery items of the queries per
+                            # section
                             _e = collections.OrderedDict()
                             _e = {"{#SECTION}": section}
                             sections_list.append(_e)
@@ -586,7 +635,9 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                                     LOGGER.info("%s: %s\n",
                                                 key,
                                                 sqls[0: 60].
-                                                replace('\n', ' ').replace('\r', ' '))
+                                                replace('\n',
+                                                        ' ').replace('\r',
+                                                                     ' '))
                     # checks are loaded now.
                     sections_json = '{\"data\":'+json.dumps(sections_list)+'}'
                     LOGGER.debug("lld key: %s json: %s\n",
@@ -596,8 +647,9 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                     LOGGER.debug("lld key: %s json: %s\n",
                                  ME+".lld", rows_json)
                     to_outfile(_config, ME + ".query.lld", rows_json)
-                    # sqls can contain multiple statements per key. sqlparse to split them
-                    # now. Otherwise use a lot of extra cycles when splitting at runtime
+                    # sqls can contain multiple statements per key. sqlparse
+                    # to split them now. Otherwise use a lot of extra cycles
+                    # when splitting at runtime
                     # all_sql { {section, key}: statements }
                     all_sql = {}
 
@@ -624,7 +676,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
 
                 for _checks in all_checks:
                     for section in sorted(_checks.sections()):
-                        section_timer = timer()  # keep this to compare for when to dump stats
+                        section_timer = timer()  # keep this to compare for
+                        # when to dump stats
                         sec_mins = int(_checks.get(section, "minutes"))
 
                         if ((con_mins == 0 and sec_mins == 0) or
@@ -641,22 +694,28 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                                         query_counter += 1
 
                                         if conn_has_cancel:
-                                            # pymysql has no cancel but does have
-                                            # timeout in connect
+                                            # pymysql has no cancel but does
+                                            # have timeout in connect
                                             sqltimeout = threading.Timer(
                                                 _config['sqltimeout'],
-                                                cancel_sql, [_conn, section, key])
+                                                cancel_sql, [_conn, section,
+                                                             key])
                                             sqltimeout.start()
                                         _start = timer()
 
-                                        for statement in all_sql[(section, key)]:
+                                        for statement in all_sql[(section,
+                                                                  key)]:
 
-                                            LOGGER.debug("%s section: %s key: %s sql: %s\n",
-                                                         ME, section, key, statement)
+                                            LOGGER.debug("%s section: %s "
+                                                         "key: %s sql: %s\n",
+                                                         ME, section, key,
+                                                         statement)
                                             _cursor.execute(statement)
                                         startf = timer()
-                                        # output for the last query must include the
-                                        # output for the preparing queries is ignored
+                                        # output for the last query must
+                                        # include the
+                                        # output for the preparing queries
+                                        # is ignored
                                         #        complete key and value
                                         rows = _cursor.fetchall()
 
@@ -669,17 +728,20 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                                             for row in rows:
                                                 _d = collections.OrderedDict()
 
-                                                for col in range(len(_cursor.description)):
+                                                for col in range(len(
+                                                         _cursor.description)):
                                                     _d[_cursor.description[col]
                                                        [0]] = row[col]
                                                 objects_list.append(_d)
                                             rows_json = '{\"data\":' + \
                                                 json.dumps(objects_list)+'}'
-                                            LOGGER.debug("DEBUG lld key: %s json: %s\n", key,
+                                            LOGGER.debug("DEBUG lld key: %s "
+                                                         "json: %s\n", key,
                                                          rows_json)
                                             to_outfile(_config, key, rows_json)
                                             to_outfile(_config, ME +
-                                                       "[query," + section + "," +
+                                                       "[query," + section +
+                                                       "," +
                                                        key + ",status]", 0)
                                         else:
                                             if rows and len(rows[0]) == 2:
@@ -688,21 +750,29 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
 
                                                 for row in rows:
                                                     to_outfile(
-                                                        _config, row[0], row[1])
+                                                        _config, row[0],
+                                                        row[1])
                                                 to_outfile(_config, ME +
-                                                           "[query," + section + "," +
+                                                           "[query," +
+                                                           section + "," +
                                                            key + ",status]", 0)
                                             elif not rows:
-                                                to_outfile(_config, ME + "[query," +
+                                                to_outfile(_config, ME +
+                                                           "[query," +
                                                            section + "," +
                                                            key + ",status]", 0)
                                             else:
-                                                LOGGER.critical('key=%s.%s ZBXDB-%d: '
-                                                                'SQL format error: %s\n',
-                                                                section, key, 2,
-                                                                "expect key,value pairs")
+                                                LOGGER.critical('key=%s.%s '
+                                                                'ZBXDB-%d: '
+                                                                'SQL format '
+                                                                'error: %s\n',
+                                                                section, key,
+                                                                2,
+                                                                "expect key,"
+                                                                "value pairs")
                                                 to_outfile(_config, ME +
-                                                           "[query," + section + "," +
+                                                           "[query," +
+                                                           section + "," +
                                                            key + ",status]", 2)
                                         _config['section'] = ""
                                         _config['key'] = ""
@@ -719,8 +789,9 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                                     except Exception as dberr:
                                         if conn_has_cancel:
                                             sqltimeout.cancel()
-                                        ecode, emsg = driver_errors.db_errorcode(
-                                            db_driver, dberr)
+                                        ecode, emsg = (
+                                            driver_errors.db_errorcode(
+                                                db_driver, dberr))
 
                                         elapsed_s = timer() - _start
                                         query_errors += 1
@@ -732,7 +803,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                                                    key + ",ela]", elapsed_s)
                                         LOGGER.info('key=%s.%s ZBXDB-%s: '
                                                     'Db execution error: %s\n',
-                                                    section, key, ecode, emsg.strip())
+                                                    section, key, ecode,
+                                                    emsg.strip())
 
                                         if driver_errors.db_error_needs_new_session(db_driver,
                                                                                     ecode):
@@ -742,8 +814,11 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                                         _conn.commit()
 
                                         LOGGER.debug("%s committed\n", ME)
-                            # end of a section ## time to run the checks again from this section
-                            to_outfile(_config, ME + "[query," + section + ",,ela]",
+                            # end of a section # time to run the checks
+                            # again from this section
+
+                            to_outfile(_config, ME + "[query," + section +
+                                       ",,ela]",
                                        timer() - section_timer)
                 # release locks that might have been taken
 
@@ -767,7 +842,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                 if ((now_run - start_time) % 3600) == 0:
                     gc.collect()
                     # dump stats
-                    LOGGER.info("connect %d times, %d fail; started %d queries, "
+                    LOGGER.info("connect %d times, %d fail; started %d "
+                                "queries, "
                                 "%d fail memrss:%d user:%f sys:%f\n",
                                 conn_counter, conn_errors, query_counter,
                                 query_errors,
@@ -775,16 +851,16 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                                     resource.RUSAGE_SELF).ru_maxrss,
                                 resource.getrusage(
                                     resource.RUSAGE_SELF).ru_utime,
-                                resource.getrusage(resource.RUSAGE_SELF).ru_stime)
+                                resource.getrusage(
+                                    resource.RUSAGE_SELF).ru_stime)
                 # try to keep activities on the same starting second:
                 sleep_time = 60 - ((int(time.time()) - start_time) % 60)
 
                 LOGGER.debug("Sleeping for %d seconds\n", sleep_time)
                 time.sleep(sleep_time)
-                con_mins = con_mins + 1  # not really mins since the checks could
-                #                       have taken longer than 1 minute to complete
+                con_mins = con_mins + 1   # not really mins since the checks
+                # could have taken longer than 1 minute to complete
             # end while True
-        # except (db_driver.DatabaseError, socket.timeout, ConnectionResetError) as dberr:
         except Exception as dberr:
             err_code, err_msg = driver_errors.db_errorcode(db_driver, dberr)
             elapsed_s = timer() - _start
@@ -794,8 +870,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
             else:
                 to_outfile(_config, ME + "[connect,status]", err_code)
 
-
-            if not driver_errors.db_error_needs_new_session(db_driver, err_code):
+            if not driver_errors.db_error_needs_new_session(
+                    db_driver, err_code):
                 # from a killed session, crashed instance or similar
                 conn_errors += 1
 
@@ -811,9 +887,9 @@ def main():  # pylint: disable=too-many-statements,too-many-branches,too-many-lo
                     sleep_s += 10
                 sleep_c = 0
             LOGGER.error('(%d.%d)connection error: [%s] %s for %s@%s\n',
-                           sleep_c, sleep_s, err_code,
-                           err_msg.strip().replace('\n', ' ').replace('\r', ' '),
-                           _config['username'], _config['db_url'])
+                         sleep_c, sleep_s, err_code,
+                         err_msg.strip().replace('\n', ' ').replace('\r', ' '),
+                         _config['username'], _config['db_url'])
             # uptime is used for nodata item .... so also give when not
             # connected
             to_outfile(_config, ME + "[uptime]", int(time.time() - start_time))
