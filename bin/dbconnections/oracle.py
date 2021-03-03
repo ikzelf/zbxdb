@@ -17,7 +17,7 @@ def current_role(conn, info):
             _c_role = _data[0]
         except conn.DatabaseError as dberr:
             _error, = dberr.args
-            LOGGER.debug('determine db_role failed %s with %s', _error.code,
+            LOGGER.error('determine db_role failed %s with %s', _error.code,
                          dberr.args[0])
             _c_role = 'notknown'
     else:
@@ -104,6 +104,6 @@ def connect(_db, _c):
         if _error.code == 1031 and _c['omode'] in (_db.SYSASM, _db_SYSDBA):
             LOGGER.warning("check orapw file[s]: ORA-%s: %s", _error.code,
                            dberr.args[0])
-        LOGGER.ERROR("connect failed %s with %s", _error.code,
+        LOGGER.error("connect failed %s with %s", _error.code,
                      dberr.args[0])
         raise

@@ -40,8 +40,8 @@ def vsnnumToVersion(vsnnum):
     if vsnnum == "":
         version = 'unknown'
     else:
-        hexVsnnum = str(hex(int(vsnnum)))[2:]
-        hexVersionList = struct.unpack('cc2sc2s', bytes(hexVsnnum, 'utf-8'))
+        hexVsnnum = str(hex(int(vsnnum)))[2:9]
+        hexVersionList = struct.unpack('cc2sc2s', hexVsnnum.encode('utf-8'))
 
         for v in hexVersionList:
             version += str(int(v, 16)) + '.'
@@ -51,34 +51,42 @@ def vsnnumToVersion(vsnnum):
 
 def getVersion(cmd):
     """send get verson cmd"""
-    cmdl = len(cmd).to_bytes(2, byteorder='big')
-    pckl = (len(cmd)+len(TNSPacket)).to_bytes(2, byteorder='big')
+    # cmdl = len(cmd).to_bytes(2, byteorder='big')
+    # pckl = (len(cmd)+len(TNSPacket)).to_bytes(2, byteorder='big')
+    cmdl = struct.pack('>H',len(cmd))
+    pckl = struct.pack('>H',len(cmd)+len(TNSPacket))
     TNSPacket[0] = pckl[0]
     TNSPacket[1] = pckl[1]
     TNSPacket[24] = cmdl[0]
     TNSPacket[25] = cmdl[1]
-    # print(cmd)
 
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(3)
-            _start = timer()
-            s.connect((HOST, PORT))
-            scmd = TNSPacket + bytes(cmd, 'utf-8')
-            s.sendall(scmd)
-            data = s.recv(1024)
-            ela = round((timer() - _start)*1000)
-
+        #with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(3)
+        _start = timer()
+        s.connect((HOST, PORT))
+        scmd = TNSPacket + cmd.encode('utf-8')
+        s.sendall(scmd)
+        data = s.recv(1024)
+        ela = round((timer() - _start)*1000)
+        if "VSNNUM" in str(data):
             rectxt = (ParseNestedParen(str(data), 0))
             vsnnum = re.findall(r'(?<=VSNNUM=).+?(?=\))',
-                                str(rectxt), flags=re.IGNORECASE)
+                     str(rectxt), flags=re.IGNORECASE)
             err = re.findall(r'(?<=ERR=).+?(?=\))',
-                             str(rectxt), flags=re.IGNORECASE)
+                     str(rectxt), flags=re.IGNORECASE)
             version = vsnnumToVersion(vsnnum[0])
+        else:
+            version = "unknown"
+            vsnnum = [str(data)[:20]]
+            err = ["131313"]
+            ela = 0
 
-            return vsnnum[0], err[0], version, ela
+        return vsnnum[0], err[0], version, ela
     except:
-        return 0, "12541", "notfound"
+        # print(sys.exc_info())
+        return 0, "12541", "notfound", 0
 
 
 PARSER = ArgumentParser()
@@ -119,8 +127,11 @@ else:
         # print("set LOCAL_OS_AUTHENTICATION_LISTENER=off  in the listener.ora  on {}".format(ARGS.server))
     elif err == "12541":
         print("TNS-{}:no listener on {} port {}".format(err, ARGS.server, ARGS.port))
-        sys.exit(-1)
+        sys.exit(1)
+    elif err == "131313":
+        print("process on {} port {} is not responding as an TNS listener ({})".format(
+             ARGS.server, ARGS.port, vsnnum.strip()))
+        sys.exit(2)
     else:
-        print(ela)
-        sys.exit(0)
-        # print("Error {}".format(err))
+        print("error: {}".format(err))
+        sys.exit(3)
