@@ -61,7 +61,7 @@ def setup_logging(
                 logging.config.dictConfig(config)
             except ValueError as _e:
                 print("Error during reading log configuration {}".format
-                      (_e.strerror))
+                      (str(_e)))
                 print(config)
                 print("Does the path for filename exist?")
                 raise
@@ -211,14 +211,13 @@ def load_driver(_c):
         _db_driver = __import__(_c['db_driver'])
         LOGGER.info(_db_driver)
     except ImportError:
-        LOGGER.critical("%s supported will be oracle(cx_Oracle),\n" +
-                        "postgres(psycopg2),\n" +
-                        "mysql(mysql.connector),\n" +
-                        "mssql(pymssql/_mssql),\n" +
-                        "db2(ibm_db_dbi)\n",
+        LOGGER.critical("%s supported seem to be oracle(cx_Oracle),\n"
+                        "postgres(psycopg2),\n"
+                        "mysql(mysql.connector),\n"
+                        "mssql(pymssql/_mssql),\n"
+                        "db2(ibm_db_dbi)\n"
+                        "SAPhana(hdbcli)\n",
                         _c['ME'])
-        LOGGER.critical(
-            "%s tested are oracle(cx_Oracle), postgres(psycopg2)\n", _c['ME'])
         LOGGER.critical(
             "Don't forget to install the drivers first ...\n", exc_info=True)
         raise
@@ -273,6 +272,8 @@ def connection_loop(connect_info, _args, _conn, _config,
                     driver_errors,
                     db_driver
                     ):
+    """handling of the connection and the queries
+       exits when a new connection must be made"""
     while True:
         if not os.path.exists(_args.configfile):
             LOGGER.warning("Config file (%s) gone ... time to quit",
@@ -376,7 +377,7 @@ def connection_loop(connect_info, _args, _conn, _config,
                     to_outfile(_config, "{}[checks,{},lmod]".format(ME,
                                                                     i),
                                str(int(os.stat(
-                                    check_files[i]['name']).st_mtime)))
+                                   check_files[i]['name']).st_mtime)))
                     try:
                         _checks.read_file(check_file)
                         check_file.close()
@@ -511,10 +512,9 @@ def connection_loop(connect_info, _args, _conn, _config,
                                     for row in rows:
                                         _d = collections.OrderedDict()
 
-                                        for col in range(len(
-                                                    _cursor.description)):
+                                        for col in range(len(_cursor.description)):
                                             _d[_cursor.description[col]
-                                                [0]] = row[col]
+                                               [0]] = row[col]
                                         objects_list.append(_d)
                                     rows_json = '{\"data\":' + \
                                         json.dumps(objects_list)+'}'
@@ -626,11 +626,11 @@ def connection_loop(connect_info, _args, _conn, _config,
                          conn_counter, conn_errors, query_counter,
                          query_errors,
                          resource.getrusage(
-                            resource.RUSAGE_SELF).ru_maxrss,
+                             resource.RUSAGE_SELF).ru_maxrss,
                          resource.getrusage(
-                            resource.RUSAGE_SELF).ru_utime,
+                             resource.RUSAGE_SELF).ru_utime,
                          resource.getrusage(
-                            resource.RUSAGE_SELF).ru_stime)
+                             resource.RUSAGE_SELF).ru_stime)
         # try to keep activities on the same starting second:
         sleep_time = 60 - ((int(time.time()) - start_time) % 60)
 
