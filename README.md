@@ -22,6 +22,8 @@ Tested with
 - mysql 5, 8
 - cockroachDB 2
 
+Help needed with the SAPhana integration.
+
 zbxdb is very cluster aware and will monitor the full cluster using a single connection to a single instance and monitor all databases served by that instance.
 
 Create a separate host for every Oracle database in zabbix(not for every instance of a RAC).
@@ -61,6 +63,7 @@ please, make sure that if you contribute, that you don't add queries that requir
 - [mysql](etc/zbxdb.mysql.cfg)
 - [Oracle](etc/zbxdb.odb.cfg)
 - [postgres](etc/zbxdb.pgdb.cfg)
+- [SAPhana](etc/zbxdb.SAPhana.cfg)
 
 
 # default checks files
@@ -96,6 +99,7 @@ section with 'discover' in their name have a special meaning, the return json ar
 - [postgres v12 slave](etc/zbxdb_checks/postgres/slave.12.cfg)
 - [mysql v5](etc/zbxdb_checks/mysql/primary.5.cfg)
 - [mysql v8](etc/zbxdb_checks/mysql/primary.8.cfg)
+- [SAPhana v8](etc/zbxdb_checks/SAPhana/primary.X.cfg)
 
 Do you find a version of a database that is not -yet - in the list, start with a copy of the highest previous version and include the version number in the name as above. The checks really are nothing more that queries that return key/value  pairs to be sent to zabbix. You need to be sure that
 
