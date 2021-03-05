@@ -7,3 +7,4 @@ pypsrp>=0.4.0
 sqlanydb>=1.0.10
 ibm-db>=3.0.1
 pyOpenSSL>=19.1.0
+hdbcli>=2.7.23
