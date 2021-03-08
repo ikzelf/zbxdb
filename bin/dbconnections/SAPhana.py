@@ -20,11 +20,12 @@ def connection_info(conn):
                  'iname': ""}
     _c = conn.cursor()
 
-    _c.execute("select substr_before (version, '.')  from sys.m_database")
+    _c.execute("select substr_before (version, '.'), system_id from sys.m_database")
 
     data = _c.fetchone()
 
     conn_info['dbversion'] = data[0]
+    conn_info['iname'] = data[1]
 
     _c.execute('SELECT CURRENT_USER "current user" FROM DUMMY')
     data = _c.fetchone()
@@ -82,6 +83,7 @@ def connect(_db, _c):
                        password=_c['password'],
                        sslValidateCertificate=sslValidateCertificate,
                        sslTrustStore=sslTrustStore,
+                       APPLICATION=_c['ME'],
                        encrypt=encrypt
                        # timeout=_c['sqltimeout'],
                        # appname=_c['ME']
