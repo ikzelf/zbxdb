@@ -31,7 +31,12 @@ def connection_info(conn):
     data = _c.fetchone()
     conn_info['uname'] = data[0]
     _c.close()
-    conn_info['db_role'] = 'primary'
+
+    conn.getclientinfo('CONNECTION_ID')
+    _c.execute("""SELECT connection_id FROM SYS.M_SESSION_CONTEXT
+               WHERE key = 'APPLICATION' and CONNECTION_ID = CURRENT_CONNECTION""")
+    data = _c.fetchone()
+    conn_info['sid'] = data[0]
 
     return conn_info
 
@@ -83,10 +88,10 @@ def connect(_db, _c):
                        password=_c['password'],
                        sslValidateCertificate=sslValidateCertificate,
                        sslTrustStore=sslTrustStore,
-                       APPLICATION=_c['ME'],
                        encrypt=encrypt
                        # timeout=_c['sqltimeout'],
                        # appname=_c['ME']
                        )
     print("Connected") if r.isconnected() else print("Not connected")
+    r.setclientinfo("APPLICATION",_c['ME'])
     return r
