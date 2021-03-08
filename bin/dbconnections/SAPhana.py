@@ -20,23 +20,17 @@ def connection_info(conn):
                  'iname': ""}
     _c = conn.cursor()
 
-    _c.execute("""
-SELECT LEFT(cast(serverproperty('ProductVersion') as varchar), CHARINDEX('.',
-cast(serverproperty('ProductVersion') as varchar)) - 1)""")
+    _c.execute("select substr_before (version, '.')  from sys.m_database")
 
     data = _c.fetchone()
 
     conn_info['dbversion'] = data[0]
 
-    # C.execute("select pg_backend_pid()")
-    # DATA = C.fetchone()
-    # conn_info['sid'] = DATA[0]
-    _c.execute("SELECT @@servername, ORIGINAL_LOGIN()")
+    _c.execute('SELECT CURRENT_USER "current user" FROM DUMMY')
     data = _c.fetchone()
-    conn_info['iname'] = data[0]
-    conn_info['uname'] = data[1]
+    conn_info['uname'] = data[0]
     _c.close()
-    conn_info['db_role'] = current_role(conn, conn_info)
+    conn_info['db_role'] = 'primary'
 
     return conn_info
 
