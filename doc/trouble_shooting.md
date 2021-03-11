@@ -16,4 +16,6 @@ It can and will happen that zbxdb_sender logs errors in the logfile. They are mo
 1) total failure
 2) some items or hosts are not found in zabbix.
 
-There are a lot of queries. They generate key value pairs and need corresponding items in zabbix to store their data. Sometimes I receive new queries, most of the times without the template modifications. This should not be hard to fix. If you see metrics that are queried, feel free to add them to the template and share using a pull request.
+There are a lot of queries. They generate key value pairs and need corresponding items in zabbix to store their data. Sometimes I receive new queries, most of the times without the template modifications. This should not be hard to fix. If you see metrics that are queried but not in the template, feel free to add them to the template and share using a pull request.
+
+Sharing each others work makes us all better.
