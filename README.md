@@ -29,6 +29,8 @@ zbxdb is very cluster aware and will monitor the full cluster using a single con
 
 Create a separate host for every Oracle database in zabbix(not for every instance of a RAC).
 Create a separate host for every mssql instance in zabbix(not for every datbase served by that instance).
+Make sure that your hostname in the zbxdb.XXX.cfg is listed exactly like in the zabbix GUI (case
+sensitive)
 
 [getting started](doc/getting_started.md)
 
