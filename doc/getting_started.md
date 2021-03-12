@@ -34,7 +34,7 @@ Replace the samples with your own configuration files.
 
 Add these entries into .bash_profile of the home directoy of the user that will run zbxdb:
 - export ZBXDB_HOME=$HOME
-- export ZBXDB_OUT=$ZBXDB_HOME/zbxora_out; #make sure this reflects the out_dir parameter in the monitoring cfg files.)
+- export ZBXDB_OUT=$ZBXDB_HOME/zbxdb_out; #make sure this reflects the out_dir parameter in the monitoring cfg files.)
 - export PATH=$PATH:$HOME/zbxdb/bin
 
 source .bash_profile
