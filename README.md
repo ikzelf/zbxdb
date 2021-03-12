@@ -5,7 +5,7 @@ started as a copy from zbxora-1.98
 Rate in [zabbix share](https: // share.zabbix.com/databases/multi-databases/zbxdb-generic-database-plugin)
 
 Written in python, tested with **python 3.6**
-Preparing for python 3.9.2 since python 3.6 hits EOL in 2021-12
+    Ready for python 3.9.2 since python 3.6 hits EOL in 2021-12
 Using drivers available for python
 purpose is monitoring any database in an efficient way.
 Using zabbix_sender to upload data from crontab
