@@ -31,7 +31,10 @@ Create a separate host for every Oracle database in zabbix(not for every instanc
 Create a separate host for every mssql instance in zabbix(not for every datbase served by that instance).
 
 [getting started](doc/getting_started.md)
+
 [trouble shooting](doc/trouble_shooting.md)
+
+[de-installation](doc/de-installation.md)
 
 # Adding more db support
 Very simple: give the dbtype a name and select a driver name for it. Ad the {dbtype}.py to the
