@@ -29,7 +29,7 @@ use pyenv to manage a local python version for zbxdb
 - cd -
 
 - cp -rp zbxdb/etc $HOME/
-- cp -p zbxdb/logging.json.example  $HOME/etc/
+- cp -p zbxdb/logging.json.example  $HOME/etc/logging.json
 
 in your etc directory are some sample monitoring configs. The naming convention for the configs is
 zbxdb.{hostname_in_zabbix}.cfg
@@ -80,3 +80,5 @@ https://oracle.github.io/odpi/doc/installation.html#oracle-instant-client-rpm
 
 Also check the prerequistes for pyenv to work
 https://github.com/pyenv/pyenv/wiki#suggested-build-environment
+
+**zbxdb scripts won't run as root.**
