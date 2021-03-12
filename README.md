@@ -184,38 +184,12 @@ ServerAcive adresses to send the data to
 It should be able to also discover windows machines. Requirement for that is that the remote powershell service is running. Assuming ssh is configured with keys.
 # configuration file - csv file with header:
 ```
-site
-cluster
-alert_group
-protocol
-user
-password
-password_enc
-members
-cust01
-prod_alerts
-ssh
-srv-db-01
-cust01
-prod01
-prod_alerts
-ssh
-prod0101, prod0102, prod0103
-cust01
-rdp
-oracle
-secret
-win00
-cust01
-rdp
-oracle
-verysecret
-win01
-cust01
-rdb
-oracle
-unknown
-wclu01, wclu02, wclu03
+site;cluster;alert_group;protocol;user;password;password_enc;members
+cust01;;prod_alerts;ssh;;;srv-db-01
+cust01;prod01;prod_alerts;ssh;;;prod0101,prod0102,prod0103
+cust01;;;rdp;oracle;secret;win00
+cust01;;;rdp;oracle;verysecret;win01
+cust01;;;rdb;oracle;unknown;wclu01,wclu02,wclu03
 ```
 # zbx_alertlog.py
 A python script that is supposed to run on the Oracle database server. It connects to all detected instances,
