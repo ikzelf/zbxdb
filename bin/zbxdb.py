@@ -37,7 +37,7 @@ from timeit import default_timer as timer
 
 import sqlparse
 
-VERSION = "2.09"
+VERSION = "2.10"
 
 
 def setup_logging(
@@ -911,6 +911,11 @@ def main():
 
 
 ME = os.path.splitext(os.path.basename(__file__))[0]
+if os.geteuid() == 0:
+    print(
+        "Running as root, don't run {}* scripts as root, for your own sake".format(ME),
+        file=sys.stderr)
+    sys.exit(13)
 LOG_CONF = setup_logging()
 LOGGER = logging.getLogger(__name__)
 

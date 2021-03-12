@@ -20,13 +20,16 @@ use pyenv to manage a local python version for zbxdb
 
 - curl - L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
 (check that your .bashrc has the pyenv init code in it (logout and back in to check it's working))
-- pyenv install 3.6.5
+- pyenv install 3.9.2
 - git clone https://github.com/ikzelf/zbxdb.git
-- pyenv global 3.6.5
-- pip install -r zbxdb/requirements.txt
+- pyenv virtualenv 3.9.2 zbxdb-3.9.2
+- cd zbxdb
+- pyenv local zbxdb-3.9.2
+- pip install -r requirements.txt
+- cd -
 
 - cp -rp zbxdb/etc $HOME/
-- cp -p zbxdb/logging.json.example  $HOME/etc/
+- cp -p zbxdb/logging.json.example  $HOME/etc/logging.json
 
 in your etc directory are some sample monitoring configs. The naming convention for the configs is
 zbxdb.{hostname_in_zabbix}.cfg
@@ -34,7 +37,7 @@ Replace the samples with your own configuration files.
 
 Add these entries into .bash_profile of the home directoy of the user that will run zbxdb:
 - export ZBXDB_HOME=$HOME
-- export ZBXDB_OUT=$ZBXDB_HOME/zbxora_out; #make sure this reflects the out_dir parameter in the monitoring cfg files.)
+- export ZBXDB_OUT=$ZBXDB_HOME/zbxdb_out; #make sure this reflects the out_dir parameter in the monitoring cfg files.)
 - export PATH=$PATH:$HOME/zbxdb/bin
 
 source .bash_profile
@@ -67,7 +70,7 @@ the files to zabbix and keep a few days of history in $HOME/zbxdb_sender/archive
 - if zbxdb_sender/archive/ remains empty, zbxdb_sender is not picking up your metrics.  Check the log. You migh be missing the zabbix-sender utility.
 
 **NOTE**
-If database drivers require separate  libraries to be installed, regretfully they need to be installed separately.
+If database drivers require separate  libraries to be installed, regretfully they need to be installed separately. Some python drivers like psycopg2 have a binary version. Installing them makes life easier.
 
 For postgres follow https://yum.postgresql.org/repopackages.php#pg12 and choose Repo required OS version
 yum install postgresql12 postgresql12-devel
@@ -77,3 +80,5 @@ https://oracle.github.io/odpi/doc/installation.html#oracle-instant-client-rpm
 
 Also check the prerequistes for pyenv to work
 https://github.com/pyenv/pyenv/wiki#suggested-build-environment
+
+**zbxdb scripts won't run as root.**
