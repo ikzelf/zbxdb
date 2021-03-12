@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 ME=${0##*/}
 
+uid=$(id -u)
+if [ ${uid} -eq 0 ]
+then
+    echo "$ME cowardly refuses to run as root" >&2
+    echo "$ME exit with ERROR-13" >&2
+    exit 13
+fi
+
 if [ -z "$ZBXDB_HOME" ]
 then
   . $HOME/.bash_profile
