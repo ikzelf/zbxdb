@@ -16,6 +16,9 @@ It can and will happen that zbxdb_sender logs errors in the logfile. They are mo
 1) total failure
 2) some items or hosts are not found in zabbix.
 
+What if you see data collected in zbxdb_out/ and in zbxdb_sender/archive/ but data is not arriving in zabbix?
+Check the hostname in your configuration file. This should exactly match the one you entered in the zabbix GUI and is case sensitive.
+
 There are a lot of queries. They generate key value pairs and need corresponding items in zabbix to store their data. Sometimes I receive new queries, most of the times without the template modifications. This should not be hard to fix. If you see metrics that are queried but not in the template, feel free to add them to the template and share using a pull request.
 
 Sharing each others work makes us all better.
