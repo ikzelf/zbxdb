@@ -5,6 +5,7 @@ started as a copy from zbxora-1.98
 Rate in [zabbix share](https: // share.zabbix.com/databases/multi-databases/zbxdb-generic-database-plugin)
 
 Written in python, tested with **python 3.6**
+Preparing for python 3.9.2 since python 3.6 hits EOL in 2021-12
 Using drivers available for python
 purpose is monitoring any database in an efficient way.
 Using zabbix_sender to upload data from crontab
@@ -21,14 +22,22 @@ Tested with
 - SQL Server 2008(10), 2012(11), 2016(13)
 - mysql 5, 8
 - cockroachDB 2
+- SAPhana 2
+
+Help needed with the SAPhana integration.
 
 zbxdb is very cluster aware and will monitor the full cluster using a single connection to a single instance and monitor all databases served by that instance.
 
 Create a separate host for every Oracle database in zabbix(not for every instance of a RAC).
 Create a separate host for every mssql instance in zabbix(not for every datbase served by that instance).
+Make sure that your hostname in the zbxdb.XXX.cfg is listed exactly like in the zabbix GUI (case
+sensitive)
 
 [getting started](doc/getting_started.md)
+
 [trouble shooting](doc/trouble_shooting.md)
+
+[de-installation](doc/de-installation.md)
 
 # Adding more db support
 Very simple: give the dbtype a name and select a driver name for it. Ad the {dbtype}.py to the
@@ -61,6 +70,7 @@ please, make sure that if you contribute, that you don't add queries that requir
 - [mysql](etc/zbxdb.mysql.cfg)
 - [Oracle](etc/zbxdb.odb.cfg)
 - [postgres](etc/zbxdb.pgdb.cfg)
+- [SAPhana](etc/zbxdb.SAPhana.cfg)
 
 
 # default checks files
@@ -96,6 +106,7 @@ section with 'discover' in their name have a special meaning, the return json ar
 - [postgres v12 slave](etc/zbxdb_checks/postgres/slave.12.cfg)
 - [mysql v5](etc/zbxdb_checks/mysql/primary.5.cfg)
 - [mysql v8](etc/zbxdb_checks/mysql/primary.8.cfg)
+- [SAPhana](etc/zbxdb_checks/SAPhana/primary.2.cfg)
 
 Do you find a version of a database that is not -yet - in the list, start with a copy of the highest previous version and include the version number in the name as above. The checks really are nothing more that queries that return key/value  pairs to be sent to zabbix. You need to be sure that
 
@@ -176,38 +187,12 @@ ServerAcive adresses to send the data to
 It should be able to also discover windows machines. Requirement for that is that the remote powershell service is running. Assuming ssh is configured with keys.
 # configuration file - csv file with header:
 ```
-site
-cluster
-alert_group
-protocol
-user
-password
-password_enc
-members
-cust01
-prod_alerts
-ssh
-srv-db-01
-cust01
-prod01
-prod_alerts
-ssh
-prod0101, prod0102, prod0103
-cust01
-rdp
-oracle
-secret
-win00
-cust01
-rdp
-oracle
-verysecret
-win01
-cust01
-rdb
-oracle
-unknown
-wclu01, wclu02, wclu03
+site;cluster;alert_group;protocol;user;password;password_enc;members
+cust01;;prod_alerts;ssh;;;srv-db-01
+cust01;prod01;prod_alerts;ssh;;;prod0101,prod0102,prod0103
+cust01;;;rdp;oracle;secret;win00
+cust01;;;rdp;oracle;verysecret;win01
+cust01;;;rdb;oracle;unknown;wclu01,wclu02,wclu03
 ```
 # zbx_alertlog.py
 A python script that is supposed to run on the Oracle database server. It connects to all detected instances,
@@ -323,9 +308,9 @@ grant create session, select any dictionary, oem_monitor to cistats
 # Oracle multitenant
 In Oracle 12 or later - when using pluggable database, in the root container, create a common user:
 ```
-create user c  # cistats identified by knowoneknows;
-alter user c  # cistats set container_data = all container = current;
-grant create session, select any dictionary, oem_monitor, dv_monitor to c  # cistats;
+create user c##cistats identified by knowoneknows;
+alter user c##cistats set container_data = all container = current;
+grant create session, select any dictionary, oem_monitor, dv_monitor to c##cistats;
 ```
 # SQLserver
 ```
