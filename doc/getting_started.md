@@ -44,6 +44,8 @@ source .bash_profile
 
 Load the template(zbxdb_template_v3.xml or zbxdb_template_v4.xml) and link it to hostname in zabbix that
 represents the database that you want to monitor. That hostname should be in the hostname parameter in your monitoring .cfg file of this database.
+For db2 at this moment there is a separate template zbxdb_template_db2_v4.xml. Maybe I can integrate this in
+the default template for zbxdb.
 
 make sure that zabbix_sender is available
 create the directory for log, collecting the metrics and workspace for zbxdb_sender

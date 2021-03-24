@@ -15,14 +15,15 @@ value is detected.
 Tested with
 
 - Oracle 10, 11, 12, 18, 19 RAC and single instance databases(probably also running on older versions)
-- Oracle primary and standby databases
 - Oracle asm, apx instances
 - Oracle plugin/multitenant databases
-- postgres 9, 10, 11, 12
-- SQL Server 2008(10), 2012(11), 2016(13)
-- mysql 5, 8
-- cockroachDB 2
+- Oracle primary and standby databases
 - SAPhana 2
+- SQL Server 2008(10), 2012(11), 2016(13)
+- cockroachDB 2
+- db2 10,11
+- mysql 5, 8
+- postgres 9, 10, 11, 12
 
 Help needed with the SAPhana integration.
 
@@ -79,34 +80,36 @@ They consist of sections. Every section  has a parameter minutes that specifies 
 
 section with 'discover' in their name have a special meaning, the return json arrays to zabbix for the low level discovery. The other sections just contain queries returning key/value pairs.
 
-- [cockroach v2](etc/zbxdb_checks/cockroach/primary.2.cfg)
+- [Oracle 10g standby](etc/zbxdb_checks/oracle/standby.10.cfg)
+- [Oracle 10g](etc/zbxdb_checks/oracle/primary.10.cfg)
+- [Oracle 11g ASM](etc/zbxdb_checks/oracle/asm.11.cfg)
+- [Oracle 11g standby](etc/zbxdb_checks/oracle/standby.11.cfg)
+- [Oracle 11g](etc/zbxdb_checks/oracle/primary.11.cfg)
+- [Oracle 12c ASM](etc/zbxdb_checks/oracle/asm.12.cfg)
+- [Oracle 12c standby](etc/zbxdb_checks/oracle/standby.12.cfg)
+- [Oracle 12c](etc/zbxdb_checks/oracle/primary.12.cfg)
+- [Oracle 18c ASM](etc/zbxdb_checks/oracle/asm.18.cfg)
+- [Oracle 18c standby](etc/zbxdb_checks/oracle/standby.18.cfg)
+- [Oracle 18c](etc/zbxdb_checks/oracle/primary.18.cfg)
+- [Oracle 19c ASM](etc/zbxdb_checks/oracle/asm.19.cfg)
+- [Oracle 19c standby](etc/zbxdb_checks/oracle/standby.19.cfg)
+- [Oracle 19c](etc/zbxdb_checks/oracle/primary.19.cfg)
+- [SAPhana](etc/zbxdb_checks/SAPhana/primary.2.cfg)
 - [SQL Server 2012](etc/zbxdb_checks/mssql/primary.11.cfg)
 - [SQL Server 2016](etc/zbxdb_checks/mssql/primary.13.cfg)
-- [Oracle 11g ASM](etc/zbxdb_checks/oracle/asm.11.cfg)
-- [Oracle 12c ASM](etc/zbxdb_checks/oracle/asm.12.cfg)
-- [Oracle 18c ASM](etc/zbxdb_checks/oracle/asm.18.cfg)
-- [Oracle 19c ASM](etc/zbxdb_checks/oracle/asm.19.cfg)
-- [Oracle 10g](etc/zbxdb_checks/oracle/primary.10.cfg)
-- [Oracle 11g](etc/zbxdb_checks/oracle/primary.11.cfg)
-- [Oracle 12c](etc/zbxdb_checks/oracle/primary.12.cfg)
-- [Oracle 18c](etc/zbxdb_checks/oracle/primary.18.cfg)
-- [Oracle 19c](etc/zbxdb_checks/oracle/primary.19.cfg)
-- [Oracle 10g standby](etc/zbxdb_checks/oracle/standby.10.cfg)
-- [Oracle 11g standby](etc/zbxdb_checks/oracle/standby.11.cfg)
-- [Oracle 12c standby](etc/zbxdb_checks/oracle/standby.12.cfg)
-- [Oracle 18c standby](etc/zbxdb_checks/oracle/standby.18.cfg)
-- [Oracle 19c standby](etc/zbxdb_checks/oracle/standby.19.cfg)
-- [postgres v9](etc/zbxdb_checks/postgres/primary.9.cfg)
-- [postgres v10](etc/zbxdb_checks/postgres/primary.10.cfg)
-- [postgres v11](etc/zbxdb_checks/postgres/primary.11.cfg)
-- [postgres v12](etc/zbxdb_checks/postgres/primary.12.cfg)
-- [postgres v9 slave](etc/zbxdb_checks/postgres/slave.9.cfg)
-- [postgres v10 slave](etc/zbxdb_checks/postgres/slave.10.cfg)
-- [postgres v11 slave](etc/zbxdb_checks/postgres/slave.11.cfg)
-- [postgres v12 slave](etc/zbxdb_checks/postgres/slave.12.cfg)
+- [cockroach v2](etc/zbxdb_checks/cockroach/primary.2.cfg)
+- [db2 10](etc/zbxdb_checks/db2/primary.10.cfg)
+- [db2 11](etc/zbxdb_checks/db2/primary.11.cfg)
 - [mysql v5](etc/zbxdb_checks/mysql/primary.5.cfg)
 - [mysql v8](etc/zbxdb_checks/mysql/primary.8.cfg)
-- [SAPhana](etc/zbxdb_checks/SAPhana/primary.2.cfg)
+- [postgres v10 slave](etc/zbxdb_checks/postgres/slave.10.cfg)
+- [postgres v10](etc/zbxdb_checks/postgres/primary.10.cfg)
+- [postgres v11 slave](etc/zbxdb_checks/postgres/slave.11.cfg)
+- [postgres v11](etc/zbxdb_checks/postgres/primary.11.cfg)
+- [postgres v12 slave](etc/zbxdb_checks/postgres/slave.12.cfg)
+- [postgres v12](etc/zbxdb_checks/postgres/primary.12.cfg)
+- [postgres v9 slave](etc/zbxdb_checks/postgres/slave.9.cfg)
+- [postgres v9](etc/zbxdb_checks/postgres/primary.9.cfg)
 
 Do you find a version of a database that is not -yet - in the list, start with a copy of the highest previous version and include the version number in the name as above. The checks really are nothing more that queries that return key/value  pairs to be sent to zabbix. You need to be sure that
 
