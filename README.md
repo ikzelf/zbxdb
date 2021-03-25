@@ -40,6 +40,8 @@ sensitive)
 
 [de-installation](doc/de-installation.md)
 
+[encryption of passwords](doc/encryption.md)
+
 # Adding more db support
 Very simple: give the dbtype a name and select a driver name for it. Ad the {dbtype}.py to the
 dbconnections / module that should handle the database connection. Add the {driver}.py to the

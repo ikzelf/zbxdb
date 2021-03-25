@@ -19,7 +19,8 @@
 import base64
 import collections
 import configparser
-import datetime
+from cryptography.fernet import Fernet, MultiFernet, InvalidToken
+from datetime import datetime
 import gc
 import importlib
 import json
@@ -37,7 +38,7 @@ from timeit import default_timer as timer
 
 import sqlparse
 
-VERSION = "2.10"
+VERSION = "3.00"
 
 
 def setup_logging(
@@ -119,16 +120,95 @@ class MyConfigParser(configparser.RawConfigParser):
             self, inline_comment_prefixes=('#', ';'))
 
 
-def encrypted(plain):
+def load_keys(d):
+    """
+    Loads the keys from the keysdir sorted by filename
+    most recent is last
+    """
+    f = []
+    try:
+        with os.scandir(d) as it:
+            direntries = list(it)  # reads all of the directory entries
+
+        direntries.sort(key=lambda x: x.name)
+        for entry in direntries:
+            f.append ([open(os.path.join(d,
+                                entry.name), "rb").read()
+                    ,entry.name]
+                    )
+    except FileNotFoundError:
+        pass
+    return f
+
+def genkey(_c):
+    """generate a new encryption key in keysdir
+    """
+    print(_c['keysdir'])
+    if not os.path.exists(_c['keysdir']):
+        os.mkdir(_c['keysdir'])
+    key = Fernet.generate_key()
+    nu = datetime.now()
+    with open(os.path.join("keys",
+                           "{}.{}.key".format(_c['ME'],
+                               datetime.strftime(nu,"%Y%m%d-%H%M%S")))
+              , "wb") as key_file:
+        key_file.write(key)
+    return
+
+def encrypted(plain, keysdir):
     """encrypt plaintext password"""
 
-    return base64.b64encode(bytes(plain, 'utf-8'))
+    keys = load_keys(keysdir)
+
+    if keys:
+        f = Fernet(keys[-1][0])
+        t = f.encrypt(bytes(plain, 'utf-8'))
+    else:
+        t = base64.b64encode(bytes(plain, 'utf-8'))
+
+    return t
 
 
-def decrypted(pw_enc):
-    """return decrypted password"""
+def decrypted(_c):
+    """return plain password"""
 
-    return base64.b64decode(pw_enc).decode("utf-8", "ignore")
+    keys = load_keys(_c['keysdir'])
+
+    t = ""
+
+    if keys:
+        f = Fernet(keys[-1][0])
+        try:
+            # first try the most recent key
+            t = f.decrypt(bytes(_c['password_enc'])).decode("utf-8")
+            LOGGER.debug("no rekey needed {}".format(t))
+        except InvalidToken:
+            LOGGER.debug("not most recent key {}:{}".format(keys[-1][0].decode(),keys[-1][1]))
+
+        if not t:
+            for k in keys:
+                f = Fernet(k[0])
+
+                try:
+                    t = f.decrypt(bytes(_c['password_enc'])).decode("utf-8")
+                    break
+                except InvalidToken:
+                    LOGGER.debug("not this key {}:{}".format(k[0].decode(),k[1]))
+
+            if not t:
+                # fallback to the old simple b64decode
+                t = base64.b64decode(_c['password_enc']).decode("utf-8", "ignore")
+
+            # an older method or key worked, force rekey
+            LOGGER.warning("Force rekey")
+            _c['password'] = t
+
+    else:
+        # fallback to the old simple b64decode
+        t = base64.b64decode(_c['password_enc']).decode("utf-8", "ignore")
+
+    LOGGER.debug("decrypted {}".format(t))
+    return t
 
 
 def get_config_par(_c, _parameter, _me):
@@ -152,7 +232,7 @@ def get_config(filename, _me):
               'omode': 0,
               'out_dir': "", 'out_file': "", 'hostname': "", 'checks_dir': "",
               'site_checks': "", 'password_enc': "", 'OUTF': 0, 'ME': _me,
-              'cafile': "",
+              'cafile': "", 'keysdir': "",
               'section': "", 'key': "",
               'sqltimeout': 60.0}
     _config = MyConfigParser()
@@ -169,6 +249,11 @@ def get_config(filename, _me):
         if _v:
             config[_i] = _v
 
+    if not config['keysdir']:
+        config['keysdir'] = os.path.join(os.path.dirname(filename),'keys')
+    if not os.path.exists(config['keysdir']):
+        os.mkdir(config['keysdir'])
+
     enc = config['password_enc']
     config['password_enc'] = bytearray(enc, 'utf-8')
 
@@ -184,8 +269,10 @@ def get_config(filename, _me):
 
     _inif.close()
 
+    pwd = decrypted(config) # just incase a rekey is needed
+
     if config['password'] != "":
-        enc = encrypted(config['password'])
+        enc = encrypted(config['password'], config['keysdir'])
         _inif = open(filename, 'w')
         _config.set(_me, 'password', '')
         _config.set(_me, 'password_enc', enc.decode())
@@ -309,7 +396,7 @@ def connection_loop(connect_info, _args, _conn, _config,
 
             if check_files[i]['lmod'] != current_lmod:
                 if i < sys_files:  # it is the script,
-                    # a module or LOG_CONF that changed
+                    # a module LOG_CONF or key that changed
                     LOGGER.warning("%s changed from %s to %s "
                                    "restarting ...\n",
                                    check_files[i]['name'],
@@ -657,21 +744,27 @@ def main():
                          help="increase log verbosity overriding the default")
     _parser.add_argument("-p", "--parameter", action="store",
                          help="show parameter from configfile")
+    _parser.add_argument("-g", "--genkey", action="count", default=0,
+                         help="generates a [new] encryption key")
     _args = _parser.parse_args()
 
     set_logfile(LOGGER, _args.configfile+".log")
 
     _config = get_config(_args.configfile, ME)
+    KEYSDIR = _config['keysdir']
 
     if _args.parameter:
         if _args.parameter == 'password':
             print('parameter {}: {}\n'.format(_args.parameter,
-                                              decrypted(
-                                                  _config[_args.parameter +
-                                                          '_enc'])))
+                                              decrypted(_config)))
         else:
             print('parameter {}: {}\n'.format(
                 _args.parameter, _config[_args.parameter]))
+        sys.exit(0)
+
+    if _args.genkey:
+        print("Generating a new encryption key")
+        genkey(_config)
         sys.exit(0)
 
     if _args.verbosity:
@@ -688,18 +781,18 @@ def main():
     LOGGER.warning("start python-%s %s-%s pid=%s Connecting ...\n",
                    platform.python_version(), ME, VERSION, os.getpid()
                    )
-    LOGGER.fatal("Fatal messages")
-    LOGGER.critical("Critical messages")
-    LOGGER.error("Error messages")
-    LOGGER.warning("Warning message")
-    LOGGER.info("Info messages")
-    LOGGER.debug("Debug messages")
+    LOGGER.fatal("logging: Fatal messages")
+    LOGGER.critical("logging: Critical messages")
+    LOGGER.error("logging: Error messages")
+    LOGGER.warning("logging: Warning message")
+    LOGGER.info("logging: Info messages")
+    LOGGER.debug("logging: Debug messages")
 
     if _config['password']:
         LOGGER.warning(
             "first encrypted the plaintext password and removed from config\n")
     # we need the password ....
-    _config['password'] = decrypted(_config['password_enc'])
+    _config['password'] = decrypted(_config)
 
 # add a few seconds extra to allow the driver timeout handling to do it's job.
 # for example, cx_oracle has a cancel routine that we call after a timeout. If
@@ -733,10 +826,7 @@ def main():
     if _config['site_checks']:
         LOGGER.info("site_checks       : %s\n", _config['site_checks'])
 
-    if LOG_CONF:
-        sys_files = 4
-    else:
-        sys_files = 3
+    sys_files = 3
     check_files = [{'name': __file__, 'lmod': os.path.getmtime(__file__)},
                    {'name': db_connections.__file__,
                     'lmod': os.path.getmtime(db_connections.__file__)},
@@ -745,10 +835,16 @@ def main():
                    {'name': LOG_CONF,
                     'lmod': os.path.getmtime(LOG_CONF)}
                    ]
+    if os.path.exists(_config['keysdir']):
+        check_files.append(
+                   {'name': _config['keysdir'],
+                    'lmod': os.path.getmtime(_config['keysdir'])})
+        sys_files +=1
 
     if LOG_CONF:
         check_files.append(
             {'name': LOG_CONF, 'lmod': os.path.getmtime(LOG_CONF)})
+        sys_files +=1
 
     for i in range(sys_files):
         to_outfile(_config,
@@ -787,7 +883,10 @@ def main():
                             'lmod': os.path.getmtime(db_connections.__file__)},
                            {'name': driver_errors.__file__,
                             'lmod': os.path.getmtime(driver_errors.__file__)}]
-
+            if os.path.exists(_config['keysdir']):
+                check_files.append(
+                        {'name': _config['keysdir'],
+                            'lmod': os.path.getmtime(_config['keysdir'])})
             if LOG_CONF:
                 check_files.append(
                     {'name': LOG_CONF, 'lmod': os.path.getmtime(LOG_CONF)})
@@ -797,7 +896,8 @@ def main():
                                _args.configfile)
                 sys.exit(0)
             _config = get_config(_args.configfile, ME)
-            _config['password'] = decrypted(_config['password_enc'])
+            KEYSDIR = _config['keysdir']
+            _config['password'] = decrypted(_config)
 
             #  hide password, hoping username != password ;-)
             LOGGER.info('connecting to %s\n',
