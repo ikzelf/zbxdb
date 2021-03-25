@@ -181,7 +181,6 @@ def decrypted(_c):
         try:
             # first try the most recent key
             t = f.decrypt(bytes(_c['password_enc'])).decode("utf-8")
-            LOGGER.debug("no rekey needed {}".format(t))
         except InvalidToken:
             LOGGER.debug("not most recent key {}:{}".format(keys[-1][0].decode(),keys[-1][1]))
 
@@ -205,7 +204,13 @@ def decrypted(_c):
 
     else:
         # fallback to the old simple b64decode
-        t = base64.b64decode(_c['password_enc']).decode("utf-8", "ignore")
+        LOGGER.debug("length password_enc: {}".format(len(_c['password_enc'])))
+        if len(_c['password_enc']) < 99:
+            t = base64.b64decode(_c['password_enc']).decode("utf-8", "ignore")
+        else:
+            LOGGER.fatal("password_enc not decryptable {}:{}".format(
+                len(_c['password_enc']),_c['password_enc']))
+            raise ValueError("password decrypt error")
 
     LOGGER.debug("decrypted {}".format(t))
     return t
@@ -269,7 +274,8 @@ def get_config(filename, _me):
 
     _inif.close()
 
-    pwd = decrypted(config) # just incase a rekey is needed
+    if config['password'] == "":
+        pwd = decrypted(config) # just incase a rekey is needed
 
     if config['password'] != "":
         enc = encrypted(config['password'], config['keysdir'])
@@ -751,7 +757,6 @@ def main():
     set_logfile(LOGGER, _args.configfile+".log")
 
     _config = get_config(_args.configfile, ME)
-    KEYSDIR = _config['keysdir']
 
     if _args.parameter:
         if _args.parameter == 'password':
@@ -791,8 +796,6 @@ def main():
     if _config['password']:
         LOGGER.warning(
             "first encrypted the plaintext password and removed from config\n")
-    # we need the password ....
-    _config['password'] = decrypted(_config)
 
 # add a few seconds extra to allow the driver timeout handling to do it's job.
 # for example, cx_oracle has a cancel routine that we call after a timeout. If
@@ -896,7 +899,6 @@ def main():
                                _args.configfile)
                 sys.exit(0)
             _config = get_config(_args.configfile, ME)
-            KEYSDIR = _config['keysdir']
             _config['password'] = decrypted(_config)
 
             #  hide password, hoping username != password ;-)
