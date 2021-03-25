@@ -303,6 +303,8 @@ logging is properly introduced and has more options to configure. To make the be
 to completely the running instances of zbxdb.py, because zbxdb_starter opens with output redirection
 to stdout and that could give slightly confusing messages like msg M2 with timestamp t+1 appearing
 sooner than msg M1 with timestamp t
+# v3.0 --  real encryption introduced
+Coming from V2 this should not give any headaches, other than a requirement that in many cases is already fullfilled.
 
 # database user creation:
 # Oracle classic
