@@ -304,7 +304,7 @@ When coming from v1, the upgrade to v2 has to be prepared by putting a logging.j
 ZBXDB_HOME/etc / folder. If that is in place the upgrade will be a smooth as before, otherwise
 zbxdb.py will fallback to a default logging configuration, to stdout. No problem at all but since v2
 logging is properly introduced and has more options to configure. To make the best of it, it is best
-to completely the running instances of zbxdb.py, because zbxdb_starter opens with output redirection
+to completely stop the running instances of zbxdb.py, because zbxdb_starter opens with output redirection
 to stdout and that could give slightly confusing messages like msg M2 with timestamp t+1 appearing
 sooner than msg M1 with timestamp t
 # v3.0 --  real encryption introduced
