@@ -19,7 +19,7 @@
 import base64
 import collections
 import configparser
-from cryptography.fernet import Fernet, MultiFernet, InvalidToken
+from cryptography.fernet import Fernet, InvalidToken
 from datetime import datetime
 import gc
 import importlib
@@ -132,13 +132,12 @@ def load_keys(d):
 
         direntries.sort(key=lambda x: x.name)
         for entry in direntries:
-            f.append ([open(os.path.join(d,
-                                entry.name), "rb").read()
-                    ,entry.name]
-                    )
+            f.append([open(os.path.join(d, entry.name), "rb").read()
+                      , entry.name])
     except FileNotFoundError:
         pass
     return f
+
 
 def genkey(_c):
     """generate a new encryption key in keysdir
@@ -150,10 +149,11 @@ def genkey(_c):
     nu = datetime.now()
     with open(os.path.join("keys",
                            "{}.{}.key".format(_c['ME'],
-                               datetime.strftime(nu,"%Y%m%d-%H%M%S")))
+                           datetime.strftime(nu, "%Y%m%d-%H%M%S")))
               , "wb") as key_file:
         key_file.write(key)
     return
+
 
 def encrypted(plain, keysdir):
     """encrypt plaintext password"""
@@ -182,7 +182,8 @@ def decrypted(_c):
             # first try the most recent key
             t = f.decrypt(bytes(_c['password_enc'])).decode("utf-8")
         except InvalidToken:
-            LOGGER.debug("not most recent key {}:{}".format(keys[-1][0].decode(),keys[-1][1]))
+            LOGGER.debug("not most recent key {}:{}".format(keys[-1][0].decode()
+                                                            , keys[-1][1]))
 
         if not t:
             for k in keys:
@@ -192,11 +193,13 @@ def decrypted(_c):
                     t = f.decrypt(bytes(_c['password_enc'])).decode("utf-8")
                     break
                 except InvalidToken:
-                    LOGGER.debug("not this key {}:{}".format(k[0].decode(),k[1]))
+                    LOGGER.debug("not this key {}:{}".format(k[0].decode()
+                                                             , k[1]))
 
             if not t:
                 # fallback to the old simple b64decode
-                t = base64.b64decode(_c['password_enc']).decode("utf-8", "ignore")
+                t = base64.b64decode(_c['password_enc']).decode(
+                    "utf-8", "ignore")
 
             # an older method or key worked, force rekey
             LOGGER.warning("Force rekey")
@@ -209,7 +212,7 @@ def decrypted(_c):
             t = base64.b64decode(_c['password_enc']).decode("utf-8", "ignore")
         else:
             LOGGER.fatal("password_enc not decryptable {}:{}".format(
-                len(_c['password_enc']),_c['password_enc']))
+                len(_c['password_enc']), _c['password_enc']))
             raise ValueError("password decrypt error")
 
     LOGGER.debug("decrypted {}".format(t))
@@ -255,7 +258,7 @@ def get_config(filename, _me):
             config[_i] = _v
 
     if not config['keysdir']:
-        config['keysdir'] = os.path.join(os.path.dirname(filename),'keys')
+        config['keysdir'] = os.path.join(os.path.dirname(filename), 'keys')
     if not os.path.exists(config['keysdir']):
         os.mkdir(config['keysdir'])
 
@@ -275,9 +278,9 @@ def get_config(filename, _me):
     _inif.close()
 
     if config['password'] == "":
-        pwd = decrypted(config) # just incase a rekey is needed
+        decrypted(config)  # just incase a rekey is needed
 
-    if config['password'] != "":
+    if config['password'] != "":  # because of in the cfg, or forced rekey
         enc = encrypted(config['password'], config['keysdir'])
         _inif = open(filename, 'w')
         _config.set(_me, 'password', '')
@@ -607,9 +610,10 @@ def connection_loop(connect_info, _args, _conn, _config,
                                     for row in rows:
                                         _d = collections.OrderedDict()
 
-                                        for col in range(len(_cursor.description)):
+                                        for col in range(
+                                          len(_cursor.description)):
                                             _d[_cursor.description[col]
-                                               [0]] = row[col]
+                                                [0]] = row[col]
                                         objects_list.append(_d)
                                     rows_json = '{\"data\":' + \
                                         json.dumps(objects_list)+'}'
@@ -845,12 +849,12 @@ def main():
         check_files.append(
                    {'name': _config['keysdir'],
                     'lmod': os.path.getmtime(_config['keysdir'])})
-        sys_files +=1
+        sys_files += 1
 
     if LOG_CONF:
         check_files.append(
             {'name': LOG_CONF, 'lmod': os.path.getmtime(LOG_CONF)})
-        sys_files +=1
+        sys_files += 1
 
     for i in range(sys_files):
         to_outfile(_config,
@@ -1021,7 +1025,8 @@ def main():
 ME = os.path.splitext(os.path.basename(__file__))[0]
 if os.geteuid() == 0:
     print(
-        "Running as root, don't run {}* scripts as root, for your own sake".format(ME),
+        "Running as root, don't run {}* scripts as root,"
+        " for your own sake".format(ME),
         file=sys.stderr)
     sys.exit(13)
 LOG_CONF = setup_logging()
