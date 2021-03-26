@@ -10,7 +10,11 @@ Using drivers available for python
 purpose is monitoring any database in an efficient way.
 Using zabbix_sender to upload data from crontab
 By popular demand: password fields are encrypted to password_enc fields during startup when a password
-value is detected.
+value is detected. Not a simple hash but with strong key, complete with key rotation.
+
+When zbxdb detects changes in it's components (zbxdb.py itself, db connection and exception modules en in
+the keysdir) zbxdb.py auto restarts to activate the changes. If the used checks files are changed, they are
+automatically reloaded. Normally this happens within 1 minute.
 
 Tested with
 
@@ -289,7 +293,7 @@ least required privileges, both on OS as on database level. Especially Oracle ha
 
 **Don't use a dba type account for this. Read only access is good enough**
 
-**Don't use a root account for this. Any OS user will do, if it can use zabbix-sender**
+**Don't use a root account for this. Any OS user that can use zabbix-sender will do**
 Using high privileged accounts is not needed in Oracle.
 
 # upgrading

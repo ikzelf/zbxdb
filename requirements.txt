@@ -1,9 +1,10 @@
-sqlparse>=0.2.4
-cx-Oracle>=6.1
-psycopg2-binary>=2.7.5
-python-tds>=1.9.1
 PyMySQL>=0.9.2
-ibm-db>=3.0.1
+cryptography>=3.4.6
+cx-Oracle>=6.1
 hdbcli>=2.7.23
+ibm-db>=3.0.1
+psycopg2-binary>=2.7.5
 pyOpenSSL>=19.1.0
 pypsrp>=0.4.0
+python-tds>=1.9.1
+sqlparse>=0.2.4
