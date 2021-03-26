@@ -459,7 +459,9 @@ def connection_loop(connect_info, _args, _conn, _config,
                 # #0 is executable that is also checked for updates
                 # #1 db_connections module
                 # #2 driver_errors module
-                # #3 LOG_CONF if it exists ...
+                # #3 config
+                # #4 keysdir
+                # #5 LOG_CONF if it exists ...
                 # so, skip those and pick the real check_files
                 _checks = configparser.RawConfigParser()
                 try:
@@ -829,14 +831,14 @@ def main():
     if _config['site_checks']:
         LOGGER.info("site_checks       : %s\n", _config['site_checks'])
 
-    sys_files = 3
+    sys_files = 4
     check_files = [{'name': __file__, 'lmod': os.path.getmtime(__file__)},
                    {'name': db_connections.__file__,
                     'lmod': os.path.getmtime(db_connections.__file__)},
                    {'name': driver_errors.__file__,
                     'lmod': os.path.getmtime(driver_errors.__file__)},
-                   {'name': LOG_CONF,
-                    'lmod': os.path.getmtime(LOG_CONF)}
+                   {'name': _args.configfile,
+                    'lmod': os.path.getmtime(_args.configfile)}
                    ]
     if os.path.exists(_config['keysdir']):
         check_files.append(
@@ -868,6 +870,10 @@ def main():
 
     while True:
         try:
+            if not os.path.exists(_args.configfile):
+                LOGGER.warning("Config file (%s) not there ... time to quit",
+                               _args.configfile)
+                sys.exit(0)
             for i in range(sys_files):
                 mtime = os.stat(check_files[i]['name']).st_mtime
                 if check_files[i]['lmod'] != mtime:
@@ -885,7 +891,10 @@ def main():
                            {'name': db_connections.__file__,
                             'lmod': os.path.getmtime(db_connections.__file__)},
                            {'name': driver_errors.__file__,
-                            'lmod': os.path.getmtime(driver_errors.__file__)}]
+                            'lmod': os.path.getmtime(driver_errors.__file__)},
+                           {'name': _args.configfile,
+                            'lmod': os.path.getmtime(_args.configfile)}
+                           ]
             if os.path.exists(_config['keysdir']):
                 check_files.append(
                         {'name': _config['keysdir'],
@@ -894,10 +903,6 @@ def main():
                 check_files.append(
                     {'name': LOG_CONF, 'lmod': os.path.getmtime(LOG_CONF)})
 
-            if not os.path.exists(_args.configfile):
-                LOGGER.warning("Config file (%s) not there ... time to quit",
-                               _args.configfile)
-                sys.exit(0)
             _config = get_config(_args.configfile, ME)
             _config['password'] = decrypted(_config)
 
