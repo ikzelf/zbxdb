@@ -10,7 +10,7 @@ initialisation the password will be rekeyed.
 Basically there is one keysdir that is the same for all .cfg files but if you want you can have multiple
 keysdirs ...... Easiest is just one ....
 
-Be sure not to loose the keys, no encryption is possible without them.
+Be sure not to loose the keys, no decryption is possible without them.
 
 Although the keys provide a strong encryption, you might want to rotate the key every once and a while, for example if someone left the company. With
 your zbxdb.py processes running, just generate a new key and within a few minutes all processes will rekey
