@@ -824,8 +824,9 @@ def main():
     #  hide password, hoping username != password ;-)
     LOGGER.info("connect string    : %s\n",
                 db_connections.connect_string(_config).replace(
-                    _config['password'], '******'))
+                    decrypted(_config), '******'))
     LOGGER.info('using sql_timeout : %ds\n', _config['sqltimeout'])
+    LOGGER.info("keysdir           : %s\n", _config['keysdir'])
     LOGGER.info("out_file          : %s\n", _config['out_file'])
 
     if _config['site_checks']:
