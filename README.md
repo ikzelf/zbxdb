@@ -2,7 +2,7 @@
 Zabbix Database monitoring plugin
 started as a copy from zbxora-1.98
 
-Rate in [zabbix share](https: // share.zabbix.com/databases/multi-databases/zbxdb-generic-database-plugin)
+Rate in [zabbix share](https://share.zabbix.com/databases/multi-databases/zbxdb-generic-database-plugin)
 
 Written in python, tested with **python 3.6**
     Ready for python 3.9.2 since python 3.6 hits EOL in 2021-12
@@ -12,9 +12,10 @@ Using zabbix_sender to upload data from crontab
 By popular demand: password fields are encrypted to password_enc fields during startup when a password
 value is detected. Not a simple hash but with strong key, complete with key rotation.
 
-When zbxdb detects changes in it's components (zbxdb.py itself, db connection and exception modules en in
-the keysdir) zbxdb.py auto restarts to activate the changes. If the used checks files are changed, they are
-automatically reloaded. Normally this happens within 1 minute.
+When zbxdb detects changes in it's components (zbxdb.py itself, db connection and exception modules,
+configfile and in the keysdir) zbxdb.py auto restarts to activate the changes. If the used checks files are changed, they are automatically reloaded. Normally this happens within 1 minute.
+When zbxdb.py detects the removal of it's configfile, zbxdb.py stops running and because zbxdb_starter does
+no longer see the file, it will not be restarted.
 
 Tested with
 
