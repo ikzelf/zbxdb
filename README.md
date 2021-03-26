@@ -72,12 +72,12 @@ please, make sure that if you contribute, that you don't add queries that requir
 
 # database config files examples
 
-- [cockroachDB](etc/zbxdb.crdb.cfg)
-- [SQLServer](etc/zbxdb.ms.cfg)
-- [mysql](etc/zbxdb.mysql.cfg)
 - [Oracle](etc/zbxdb.odb.cfg)
-- [postgres](etc/zbxdb.pgdb.cfg)
 - [SAPhana](etc/zbxdb.SAPhana.cfg)
+- [SQLServer](etc/zbxdb.ms.cfg)
+- [cockroachDB](etc/zbxdb.crdb.cfg)
+- [mysql](etc/zbxdb.mysql.cfg)
+- [postgres](etc/zbxdb.pgdb.cfg)
 
 
 # default checks files
@@ -308,7 +308,7 @@ to completely the running instances of zbxdb.py, because zbxdb_starter opens wit
 to stdout and that could give slightly confusing messages like msg M2 with timestamp t+1 appearing
 sooner than msg M1 with timestamp t
 # v3.0 --  real encryption introduced
-Coming from V2 this should not give any headaches, other than a requirement that in many cases is already fullfilled.
+Coming from V2 this should not give any headaches, other than a requirement that in many cases is already fullfilled. (cryptography)
 
 # database user creation:
 # Oracle classic
