@@ -10,7 +10,9 @@ Using drivers available for python
 purpose is monitoring any database in an efficient way.
 Using zabbix_sender to upload data from crontab
 By popular demand: password fields are encrypted to password_enc fields during startup when a password
-value is detected. Not a simple hash but with strong key, complete with key rotation.
+value is detected. Not a simple hash but with strong key, complete with key rotation, if a key has been
+generated using "bin/zbxdb.py -c one_of_your.cfg -g". This will generate a key and place in in the keys
+directory for use of all your cfg's that are in the same directory.
 
 When zbxdb detects changes in it's components (zbxdb.py itself, db connection and exception modules,
 configfile and in the keysdir) zbxdb.py auto restarts to activate the changes. If the used checks files are changed, they are automatically reloaded. Normally this happens within 1 minute.
