@@ -929,7 +929,7 @@ def main():
                          _config['db_url'], connect_info['instance_type'],
                          connect_info['db_role'],
                          connect_info['dbversion'],
-                         datetime.datetime.fromtimestamp(time.time()),
+                         datetime.fromtimestamp(time.time()),
                          _config['username'], connect_info['uname'],
                          connect_info['sid'],
                          connect_info['serial'],
