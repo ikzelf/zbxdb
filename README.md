@@ -357,6 +357,9 @@ I am very open for tips to make this better, without a superuser account.
 
 v9:
 create user cistats with superuser encrypted password 'knowoneknows'
+or, without superuser:
+create user cistats with encrypted password 'knowoneknows'
+grant select on pg_catalog.pg_settings to cistats;
 
 v10 and later:
 create user cistats with encrypted password 'knowoneknows'
