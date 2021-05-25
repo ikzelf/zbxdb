@@ -79,9 +79,16 @@ please, make sure that if you contribute, that you don't add queries that requir
 - [SAPhana](etc/zbxdb.SAPhana.cfg)
 - [SQLServer](etc/zbxdb.ms.cfg)
 - [cockroachDB](etc/zbxdb.crdb.cfg)
+- [db2](etc/zbxdb.db2.cfg)
 - [mysql](etc/zbxdb.mysql.cfg)
 - [postgres](etc/zbxdb.pgdb.cfg)
 
+
+It is important to note that the hostname parameter in the configuration files reflects the hostname that is
+created in zabbix (case sensitive). The idea is that every configuration points to it's own and unique
+hostname so you have as much different hostnames in zabbix as zbxdb.\*.cfg files. Attach the zbxdb template
+to the host[s] and all should work. In this setup, a host is a database configuration and not a machine that
+hosts a database.
 
 # default checks files
 
