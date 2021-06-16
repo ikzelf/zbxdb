@@ -383,21 +383,21 @@ refrain from using &quot;,&quot; in item names to prevent trouble with graph wid
 					<triggers>
 						<trigger>
 							<expression>{timeleft(1h,,0)}&lt;4h</expression>
-							<name>fra loop snel vol(&lt;4h)</name>
+							<name>fra fill up quickly(&lt;4h)</name>
 							<priority>AVERAGE</priority>
-							<description>aan de hand van de gegevens van afgelopen 6 uur is de schatting dat fra binnen 4 uur volloopt</description>
+							<description>based on the data from the past 6 hours, it is estimated that fra will fill up within 4 hours</description>
 							<dependencies>
 								<dependency>
-									<name>fra zit vol</name>
+									<name>fra is full</name>
 									<expression>{template zbxDB:fra[usable,pct].last()}&lt;2</expression>
 								</dependency>
 							</dependencies>
 						</trigger>
 						<trigger>
 							<expression>{last()}&lt;2</expression>
-							<name>fra zit vol</name>
+							<name>fra is full</name>
 							<priority>DISASTER</priority>
-							<description>fra heeft minder dan 2% bruikbare ruimte</description>
+							<description>fra has less than 2% usable space</description>
 						</trigger>
 					</triggers>
 				</item>
@@ -741,9 +741,9 @@ and
 							<recovery_expression>{iregexp(^00*$)}=1</recovery_expression>
 							<name>zbxdb connect {HOSTNAME} failed &gt; 1h</name>
 							<priority>HIGH</priority>
-							<description>Database is nog steeds niet bereikbaar.
+							<description>Database still not reachable.
 
-BTW: nodata vanwege dedup in preprocessing van het item</description>
+BTW: nodata due to dedup in item preprocessing</description>
 						</trigger>
 						<trigger>
 							<expression>{iregexp(^00*$)}=0
@@ -754,7 +754,7 @@ and {nodata({$ZBXDB_CONNECT_FAILED})} = 1</expression>
 							<priority>AVERAGE</priority>
 							<description>failed {$ZBXDB_CONNECT_FAILED} ago and still fails.
 
-BTW: nodata vanwege dedup in preprocessing van het item</description>
+BTW: nodata due to dedup in item preprocessing</description>
 							<dependencies>
 								<dependency>
 									<name>zbxdb connect {HOSTNAME} failed &gt; 1h</name>
@@ -870,7 +870,7 @@ make this trigger depend from the host restart to prevent a gazillion events whe
 							<expression>{nodata({$ZBXDB_NODATA_HIGH})}&lt;&gt;0</expression>
 							<name>zbxdb Connect nodata {HOSTNAME} since {$ZBXDB_NODATA_HIGH}</name>
 							<priority>HIGH</priority>
-							<description>mogelijk hangt er iets in de database. Blocking sessions oid waar ook de monitoring op hangt. Meestal heeft latest data blocked[topsid] de dader al wel vast gelegd. Komt ook wel eens voor na een cancel operatie nav een te lang draaiende query. In dat geval svp ook ff in de database kijken naar de zbxdb sessie.</description>
+							<description>There may be something in the database. Blocking sessions or the like where the monitoring also hangs. Usually latest data blocked[topsid] has already identified the perpetrator. Also sometimes occurs after a cancel operation after a query that runs too long. In that case please also look in the database for the zbxdb session.</description>
 							<tags>
 								<tag>
 									<tag>MONITORED_BY_PROXY</tag>
@@ -945,8 +945,8 @@ make this trigger depend from the host restart to prevent a gazillion events whe
 							<trigger_prototypes>
 								<trigger_prototype>
 									<expression>{timeleft(14d,0,0)}&lt;14d or {timeleft(7d,0,0)}&lt;14d</expression>
-									<name>asmVG {#ASMVOL} loopt binnen 14d vol</name>
-									<description>gebaseerd op de gegevens van de laatste 14 of van de laatste 7 dagen lijkt dit asm volume vol te lopen binnen 14 dagen.</description>
+									<name>asmVG {#ASMVOL} fills up within 14d</name>
+									<description>based on data from the last 14 or the last 7 days, this asm volume appears to be filling up within 14 days.</description>
 								</trigger_prototype>
 							</trigger_prototypes>
 						</item_prototype>
@@ -1016,9 +1016,9 @@ make this trigger depend from the host restart to prevent a gazillion events whe
 							<trigger_prototypes>
 								<trigger_prototype>
 									<expression>{timeleft(14d,0,0)}&lt;14d or {timeleft(7d,0,0)}&lt;14d</expression>
-									<name>acfs fs {#ACFS_FS} loopt binnen 14d vol</name>
+									<name>acfs fs {#ACFS_FS} fills up within 14d</name>
 									<priority>WARNING</priority>
-									<description>gebaseerd op de gegevens van de laatste 14 of 7 dagen lijkt dit fs vol te lopen binnen 14 dagen.</description>
+									<description>based on data from the last 14 or 7 days, this fs seems to fill up within 14 days.</description>
 								</trigger_prototype>
 							</trigger_prototypes>
 						</item_prototype>
@@ -1333,7 +1333,7 @@ https://prutser.wordpress.com/2013/01/03/demystifying-asm-required_mirror_free_m
 							<history>1w</history>
 							<units>s</units>
 							<params>timeleft(&quot;dgrp[{#DGRP},pctfree]&quot;,30d,,0)</params>
-							<description>ruimte om vol te lopen gebaseerd op laatste 30 dagen.</description>
+							<description>room to fill up based on last 30 days.</description>
 							<applications>
 								<application>
 									<name>ASM</name>
@@ -1349,7 +1349,7 @@ https://prutser.wordpress.com/2013/01/03/demystifying-asm-required_mirror_free_m
 							<history>1w</history>
 							<units>s</units>
 							<params>timeleft(&quot;dgrp[{#DGRP},pctfree]&quot;,180d,,0)</params>
-							<description>tijd die nog rest om vol te lopen, gebaseerd op laatste half jaar.</description>
+							<description>time left to fill up, based on the last 6 months.</description>
 							<applications>
 								<application>
 									<name>ASM</name>
@@ -1421,14 +1421,14 @@ current pct free &lt; minimum pct free of a week ago</description>
 								</trigger_prototype>
 								<trigger_prototype>
 									<expression>{timeleft(14d,,0)} &lt; 100d and {timeleft(14d,,0)} &lt; 2d or {timeleft(14d,,0)} &gt;= 100d and ( {timeleft(7d,,0)} &lt; 100d and {timeleft(7d,,0)} &lt; 2d or {timeleft(7d,,0)} &gt;= 100d and ( {timeleft(1d,,0)} &lt; 100d and {timeleft(1d,,0)} &lt; 2d or {timeleft(1d,,0)} &gt;= 100d and ( {timeleft(6h,,0)} &lt; 100d and {timeleft(6h,,0)} &lt; 2d)))</expression>
-									<name>dg[{#DGRP} loopt binnen 2d vol</name>
+									<name>dg[{#DGRP} fills up in 2d</name>
 									<priority>AVERAGE</priority>
-									<description>poging om op tijd te waarschuwen ondanks zaagtandjes.
-als gebaseerd 
-    op laatste 14d &lt; 2d
-of als laatste 7d &lt; 2d
-of als laatste 1d &lt; 2d
-of als laatste 6h &lt; 2d tijd geeft komt de trigger.</description>
+									<description>attempt to warn in time despite saw teeth.
+if based
+   on last 14d &lt; 2d
+on last 7d &lt; 2d
+on last 1d &lt; 2d
+on last 6h &lt; 2d time gives comes the trigger.</description>
 									<dependencies>
 										<dependency>
 											<name>dg[{#DGRP},pctfree] == 0</name>
@@ -1440,13 +1440,13 @@ of als laatste 6h &lt; 2d tijd geeft komt de trigger.</description>
 									<expression>{timeleft(14d,,0)} &lt; 100d and {timeleft(14d,,0)} &lt; 14d or {timeleft(14d,,0)} &gt;= 100d and ( {timeleft(7d,,0)} &lt; 100d and {timeleft(7d,,0)} &lt; 14d )</expression>
 									<name>dg[{#DGRP} loopt binnen 14d vol</name>
 									<priority>WARNING</priority>
-									<description>poging om op tijd te waarschuwen ondanks zaagtandjes.
-als gebaseerd 
-    op laatste 14d &lt; 14d
-of als laatste 7d &lt; 14d tijd geeft komt de trigger.</description>
+									<description>attempt to warn in time despite saw teeth.
+if based 
+    on last 14d &lt; 14d
+or last 7d &lt; 14d time gives comes the trigger.</description>
 									<dependencies>
 										<dependency>
-											<name>dg[{#DGRP} loopt binnen 2d vol</name>
+											<name>dg[{#DGRP} fills up in 2d</name>
 											<expression>{template zbxDB:dgrp[{#DGRP},pctfree].timeleft(14d,,0)} &lt; 100d and {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(14d,,0)} &lt; 2d or {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(14d,,0)} &gt;= 100d and ( {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(7d,,0)} &lt; 100d and {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(7d,,0)} &lt; 2d or {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(7d,,0)} &gt;= 100d and ( {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(1d,,0)} &lt; 100d and {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(1d,,0)} &lt; 2d or {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(1d,,0)} &gt;= 100d and ( {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(6h,,0)} &lt; 100d and {template zbxDB:dgrp[{#DGRP},pctfree].timeleft(6h,,0)} &lt; 2d)))</expression>
 										</dependency>
 									</dependencies>
@@ -2099,16 +2099,16 @@ and {template zbxDB:expu[{#PDB},{#USERNAME},expiring].nodata(2h)}=0</description
 							<trigger_prototypes>
 								<trigger_prototype>
 									<expression>{timeleft(14d,,0)} &lt; 5d or {timeleft(14d,,0)} &gt;= 100d and {timeleft(7d,,0)} &lt; 5d or {timeleft(7d,,0)} &gt;= 100d and {timeleft(1d,,0)} &lt; 2d</expression>
-									<name>p_ts[{#PDB},{#TS_NAME}] loopt binnen 5d vol</name>
+									<name>p_ts[{#PDB},{#TS_NAME}] fills up in 5d</name>
 									<priority>AVERAGE</priority>
-									<description>loopt de tablespace binnen 5 dagen vol?
-gebaseerd op laatste 14 dagen, laatste 7 dagen of laatste dag.</description>
+									<description>does the tablespace fill up within 5 days?
+based on last 14 days, last 7 days or last day.</description>
 								</trigger_prototype>
 								<trigger_prototype>
 									<expression>{timeleft(14d,,0)} &lt; 100d and {timeleft(14d,,0)} &lt; 14d or {timeleft(14d,,0)} &gt;= 100d and ( {timeleft(7d,,0)} &lt; 100d and {timeleft(7d,,0)} &lt; 7d or {timeleft(7d,,0)} &gt;= 100d and ( {timeleft(1d,,0)} &lt; 100d and {timeleft(1d,,0)} &lt; 1d))</expression>
-									<name>p_ts[{#PDB},{#TS_NAME}] loopt binnen 14d vol</name>
+									<name>p_ts[{#PDB},{#TS_NAME}] fills up within 14d</name>
 									<priority>WARNING</priority>
-									<description>gebaseerd op data van laatste 14 dagen maar ook op de laatste 7 dagen waarbij dan getriggerred wordt als minder dan 7 dagen over zijn en nog eens op de laatste dag waarbij de prognose minder dan een dag te gaan wordt getest.</description>
+									<description>based on data from the last 14 days but also on the last 7 days, triggering when less than 7 days are left and again on the last day testing the forecast less than a day to go.</description>
 									<dependencies>
 										<dependency>
 											<name>p_ts[{#PDB},{#TS_NAME}] loopt binnen 5d vol</name>
@@ -2197,7 +2197,7 @@ and {template zbxDB:p_ts[{#PDB},{#TS_NAME},pctfreeMAX,timeleft14d].last()}&lt;30
 and
 {template zbxDB:p_ts[{#PDB},{#TS_NAME},pctfreeMAX,timeleft14d].last()}&lt;{template zbxDB:p_ts[{#PDB},{#TS_NAME},pctfreeMAX,timeleft14d].last(1)}</expression>
 							<name>p_ts[{#PDB},{#TS_NAME}] loopt vol</name>
-							<description>vrije ruimte neemt af, tijd tot vollopen neemt af en is kleiner dan 4d volgens laatste dag aan metingen</description>
+							<description>free space decreases, time to flood decreases and is less than 4d according to last day of measurements</description>
 						</trigger_prototype>
 					</trigger_prototypes>
 					<graph_prototypes>
@@ -2374,8 +2374,8 @@ and
 							<name>rman[{#OBJ_TYPE}] running longer than a  week  ago</name>
 							<priority>INFO</priority>
 							<description>status 5 == running
-6dagen terug en vergelijk met de max van de voorgaande 2dagen
-alert als 50% langer loopt</description>
+6 days back and compare with the max of the previous 2 days
+alert when running 50% longer</description>
 						</trigger_prototype>
 					</trigger_prototypes>
 					<graph_prototypes>
@@ -2773,7 +2773,7 @@ alert als 50% langer loopt</description>
 									<expression>{last(0)}&lt; {$ZBXDB_TS_WARN}</expression>
 									<name>u_ts[{#PDB},{#TS_NAME},pctfreeMAX]&lt; {$ZBXDB_TS_WARN}</name>
 									<priority>AVERAGE</priority>
-									<description>undo tablespace loopt bijna vol</description>
+									<description>undo tablespace is almost full</description>
 									<dependencies>
 										<dependency>
 											<name>u_ts[{#PDB},{#TS_NAME},pctfreeMAX]&lt; {$ZBXDB_TS_HIGH}</name>
@@ -3040,7 +3040,7 @@ or
 									<expression>{last()}=4031</expression>
 									<name>zbxdb[query,{#SECTION},{#KEY}] shared pool vol (4031)</name>
 									<priority>WARNING</priority>
-									<description>query heeft een probleem vanwege ora-4031, unable to allocate from shared pool</description>
+									<description>query has a problem due to ora-4031, unable to allocate from shared pool</description>
 								</trigger_prototype>
 								<trigger_prototype>
 									<expression>{last()}=1013
