@@ -3,21 +3,9 @@
 	<version>5.0</version>
 	<date>2016-01-01T01:01:01Z</date>
 	<groups>
-		<group>
-			<name>ggzob</name>
-		</group>
-		<group>
-			<name>heartbeat</name>
-		</group>
-		<group>
-			<name>parc</name>
-		</group>
-		<group>
-			<name>platform</name>
-		</group>
-		<group>
-			<name>Templates</name>
-		</group>
+        <group>
+            <name>Templates</name>
+        </group>
 	</groups>
 	<templates>
 		<template>
@@ -26,21 +14,9 @@
 			<description>DB monitoring done by zbxdb
 refrain from using &quot;,&quot; in item names to prevent trouble with graph widgets in dashboards. &lt;https://github.com/ikzelf/zbxdb/issues/14&gt;</description>
 			<groups>
-				<group>
-					<name>ggzob</name>
-				</group>
-				<group>
-					<name>heartbeat</name>
-				</group>
-				<group>
-					<name>parc</name>
-				</group>
-				<group>
-					<name>platform</name>
-				</group>
-				<group>
-					<name>Templates</name>
-				</group>
+                <group>
+                    <name>Templates</name>
+                </group>
 			</groups>
 			<applications>
 				<application>
@@ -385,7 +361,7 @@ refrain from using &quot;,&quot; in item names to prevent trouble with graph wid
 							<expression>{timeleft(1h,,0)}&lt;4h</expression>
 							<name>fra loop snel vol(&lt;4h)</name>
 							<priority>AVERAGE</priority>
-							<description>aan de hand van de gegevens van afgelopen 6 uur is de schatting dat fra binnen 4 uur volloopt</description>
+							<description>Estimated 4 hours left before depletion (based on last 6h)</description>
 							<dependencies>
 								<dependency>
 									<name>fra zit vol</name>
@@ -397,7 +373,7 @@ refrain from using &quot;,&quot; in item names to prevent trouble with graph wid
 							<expression>{last()}&lt;2</expression>
 							<name>fra zit vol</name>
 							<priority>DISASTER</priority>
-							<description>fra heeft minder dan 2% bruikbare ruimte</description>
+							<description>Fra has less than 2% usable space</description>
 						</trigger>
 					</triggers>
 				</item>
@@ -529,7 +505,7 @@ refrain from using &quot;,&quot; in item names to prevent trouble with graph wid
 							<expression>{last()}&gt;0</expression>
 							<name>rp present</name>
 							<priority>INFO</priority>
-							<description>Restore point aanwezig</description>
+							<description>Restore point present</description>
 						</trigger>
 					</triggers>
 				</item>
@@ -619,7 +595,7 @@ refrain from using &quot;,&quot; in item names to prevent trouble with graph wid
 					<delay>0</delay>
 					<trends>0</trends>
 					<value_type>CHAR</value_type>
-					<description>no quite an OS but still a version</description>
+					<description>Not quite an OS but still a version</description>
 					<applications>
 						<application>
 							<name>zbxdb</name>
@@ -668,7 +644,7 @@ refrain from using &quot;,&quot; in item names to prevent trouble with graph wid
 					<delay>0</delay>
 					<trends>0</trends>
 					<value_type>CHAR</value_type>
-					<description>instance waar monitoring aan is verbonden</description>
+					<description>Instance where monitoring is connected to</description>
 					<inventory_link>NAME</inventory_link>
 					<applications>
 						<application>
@@ -741,9 +717,9 @@ and
 							<recovery_expression>{iregexp(^00*$)}=1</recovery_expression>
 							<name>zbxdb connect {HOSTNAME} failed &gt; 1h</name>
 							<priority>HIGH</priority>
-							<description>Database is nog steeds niet bereikbaar.
+							<description>Database still not reachable
 
-BTW: nodata vanwege dedup in preprocessing van het item</description>
+BTW: nodata because of dedup in preprocessing</description>
 						</trigger>
 						<trigger>
 							<expression>{iregexp(^00*$)}=0
@@ -754,7 +730,7 @@ and {nodata({$ZBXDB_CONNECT_FAILED})} = 1</expression>
 							<priority>AVERAGE</priority>
 							<description>failed {$ZBXDB_CONNECT_FAILED} ago and still fails.
 
-BTW: nodata vanwege dedup in preprocessing van het item</description>
+BTW: nodata because of dedup in preprocessing</description>
 							<dependencies>
 								<dependency>
 									<name>zbxdb connect {HOSTNAME} failed &gt; 1h</name>
@@ -870,7 +846,7 @@ make this trigger depend from the host restart to prevent a gazillion events whe
 							<expression>{nodata({$ZBXDB_NODATA_HIGH})}&lt;&gt;0</expression>
 							<name>zbxdb Connect nodata {HOSTNAME} since {$ZBXDB_NODATA_HIGH}</name>
 							<priority>HIGH</priority>
-							<description>mogelijk hangt er iets in de database. Blocking sessions oid waar ook de monitoring op hangt. Meestal heeft latest data blocked[topsid] de dader al wel vast gelegd. Komt ook wel eens voor na een cancel operatie nav een te lang draaiende query. In dat geval svp ook ff in de database kijken naar de zbxdb sessie.</description>
+                            <description>Possibly some hang in the datbase. Blocking sessions that is/are also blocking zbxdb. Check latest data blocked[topsid] the blocker could be shown there. Does sometimes happen after a cancelled query. In that case also check the zbxdb session in the database.</description>
 							<tags>
 								<tag>
 									<tag>MONITORED_BY_PROXY</tag>
@@ -946,7 +922,7 @@ make this trigger depend from the host restart to prevent a gazillion events whe
 								<trigger_prototype>
 									<expression>{timeleft(14d,0,0)}&lt;14d or {timeleft(7d,0,0)}&lt;14d</expression>
 									<name>asmVG {#ASMVOL} loopt binnen 14d vol</name>
-									<description>gebaseerd op de gegevens van de laatste 14 of van de laatste 7 dagen lijkt dit asm volume vol te lopen binnen 14 dagen.</description>
+									<description>Estimated to fill up within 14 days, based on last 14 or last 7 days of history.</description>
 								</trigger_prototype>
 							</trigger_prototypes>
 						</item_prototype>
@@ -1018,7 +994,7 @@ make this trigger depend from the host restart to prevent a gazillion events whe
 									<expression>{timeleft(14d,0,0)}&lt;14d or {timeleft(7d,0,0)}&lt;14d</expression>
 									<name>acfs fs {#ACFS_FS} loopt binnen 14d vol</name>
 									<priority>WARNING</priority>
-									<description>gebaseerd op de gegevens van de laatste 14 of 7 dagen lijkt dit fs vol te lopen binnen 14 dagen.</description>
+									<description>Estimated to full up within 14 days, based on last 14 days or last 7 days of history.</description>
 								</trigger_prototype>
 							</trigger_prototypes>
 						</item_prototype>
@@ -1333,7 +1309,7 @@ https://prutser.wordpress.com/2013/01/03/demystifying-asm-required_mirror_free_m
 							<history>1w</history>
 							<units>s</units>
 							<params>timeleft(&quot;dgrp[{#DGRP},pctfree]&quot;,30d,,0)</params>
-							<description>ruimte om vol te lopen gebaseerd op laatste 30 dagen.</description>
+							<description>time left to fill up based on last 30 days.</description>
 							<applications>
 								<application>
 									<name>ASM</name>
@@ -1349,7 +1325,7 @@ https://prutser.wordpress.com/2013/01/03/demystifying-asm-required_mirror_free_m
 							<history>1w</history>
 							<units>s</units>
 							<params>timeleft(&quot;dgrp[{#DGRP},pctfree]&quot;,180d,,0)</params>
-							<description>tijd die nog rest om vol te lopen, gebaseerd op laatste half jaar.</description>
+							<description>time left to fill up, based on last 180 days.</description>
 							<applications>
 								<application>
 									<name>ASM</name>
@@ -1423,12 +1399,12 @@ current pct free &lt; minimum pct free of a week ago</description>
 									<expression>{timeleft(14d,,0)} &lt; 100d and {timeleft(14d,,0)} &lt; 2d or {timeleft(14d,,0)} &gt;= 100d and ( {timeleft(7d,,0)} &lt; 100d and {timeleft(7d,,0)} &lt; 2d or {timeleft(7d,,0)} &gt;= 100d and ( {timeleft(1d,,0)} &lt; 100d and {timeleft(1d,,0)} &lt; 2d or {timeleft(1d,,0)} &gt;= 100d and ( {timeleft(6h,,0)} &lt; 100d and {timeleft(6h,,0)} &lt; 2d)))</expression>
 									<name>dg[{#DGRP} loopt binnen 2d vol</name>
 									<priority>AVERAGE</priority>
-									<description>poging om op tijd te waarschuwen ondanks zaagtandjes.
-als gebaseerd 
-    op laatste 14d &lt; 2d
-of als laatste 7d &lt; 2d
-of als laatste 1d &lt; 2d
-of als laatste 6h &lt; 2d tijd geeft komt de trigger.</description>
+									<description>Try to warn in time despite wave pattern.
+when based 
+on last 14d &lt; 2d
+or  last 7d &lt; 2d
+or  last 1d &lt; 2d
+or  last 6h &lt; 2d less than 2 days left the trigger fires.</description>
 									<dependencies>
 										<dependency>
 											<name>dg[{#DGRP},pctfree] == 0</name>
@@ -1440,10 +1416,10 @@ of als laatste 6h &lt; 2d tijd geeft komt de trigger.</description>
 									<expression>{timeleft(14d,,0)} &lt; 100d and {timeleft(14d,,0)} &lt; 14d or {timeleft(14d,,0)} &gt;= 100d and ( {timeleft(7d,,0)} &lt; 100d and {timeleft(7d,,0)} &lt; 14d )</expression>
 									<name>dg[{#DGRP} loopt binnen 14d vol</name>
 									<priority>WARNING</priority>
-									<description>poging om op tijd te waarschuwen ondanks zaagtandjes.
-als gebaseerd 
-    op laatste 14d &lt; 14d
-of als laatste 7d &lt; 14d tijd geeft komt de trigger.</description>
+									<description>Try to warn in time despite wave pattern.
+when based 
+    on last 14d &lt; 14d
+or  on last 7d &lt; 14d time left the trigger fires.</description>
 									<dependencies>
 										<dependency>
 											<name>dg[{#DGRP} loopt binnen 2d vol</name>
@@ -2101,14 +2077,14 @@ and {template zbxDB:expu[{#PDB},{#USERNAME},expiring].nodata(2h)}=0</description
 									<expression>{timeleft(14d,,0)} &lt; 5d or {timeleft(14d,,0)} &gt;= 100d and {timeleft(7d,,0)} &lt; 5d or {timeleft(7d,,0)} &gt;= 100d and {timeleft(1d,,0)} &lt; 2d</expression>
 									<name>p_ts[{#PDB},{#TS_NAME}] loopt binnen 5d vol</name>
 									<priority>AVERAGE</priority>
-									<description>loopt de tablespace binnen 5 dagen vol?
-gebaseerd op laatste 14 dagen, laatste 7 dagen of laatste dag.</description>
+									<description>Tablespace fills up within 5d
+based on last 14d or last 7d or last day.</description>
 								</trigger_prototype>
 								<trigger_prototype>
 									<expression>{timeleft(14d,,0)} &lt; 100d and {timeleft(14d,,0)} &lt; 14d or {timeleft(14d,,0)} &gt;= 100d and ( {timeleft(7d,,0)} &lt; 100d and {timeleft(7d,,0)} &lt; 7d or {timeleft(7d,,0)} &gt;= 100d and ( {timeleft(1d,,0)} &lt; 100d and {timeleft(1d,,0)} &lt; 1d))</expression>
 									<name>p_ts[{#PDB},{#TS_NAME}] loopt binnen 14d vol</name>
 									<priority>WARNING</priority>
-									<description>gebaseerd op data van laatste 14 dagen maar ook op de laatste 7 dagen waarbij dan getriggerred wordt als minder dan 7 dagen over zijn en nog eens op de laatste dag waarbij de prognose minder dan een dag te gaan wordt getest.</description>
+									<description>Tablespace is filling up soon.</description>
 									<dependencies>
 										<dependency>
 											<name>p_ts[{#PDB},{#TS_NAME}] loopt binnen 5d vol</name>
@@ -2197,7 +2173,7 @@ and {template zbxDB:p_ts[{#PDB},{#TS_NAME},pctfreeMAX,timeleft14d].last()}&lt;30
 and
 {template zbxDB:p_ts[{#PDB},{#TS_NAME},pctfreeMAX,timeleft14d].last()}&lt;{template zbxDB:p_ts[{#PDB},{#TS_NAME},pctfreeMAX,timeleft14d].last(1)}</expression>
 							<name>p_ts[{#PDB},{#TS_NAME}] loopt vol</name>
-							<description>vrije ruimte neemt af, tijd tot vollopen neemt af en is kleiner dan 4d volgens laatste dag aan metingen</description>
+							<description>Tablespace fills up within 4d</description>
 						</trigger_prototype>
 					</trigger_prototypes>
 					<graph_prototypes>
@@ -2274,8 +2250,8 @@ Set macro $ZBXDB_BKUP_AGE_FACTOR to 0 if backups are not important for the given
 									<expression>({min(2h)}&gt;{$ZBXDB_BKUP_MAX_INCR_AGE}) and {$ZBXDB_BKUP_AGE_FACTOR} &gt; 0</expression>
 									<name>rman[{#OBJ_TYPE}].last bkup OUDer {$ZBXDB_BKUP_MAX_INCR_AGE}</name>
 									<priority>AVERAGE</priority>
-									<description>backups ouder dan {$ZBXDB_BKUP_MAX_INCR_AGE} ..... wat klopt er niet?
-Deze trigger gaat pas af na 2 uur om zodoende het SQL server action script de tijd te geven om bij een instance switch de backups te verwerken.</description>
+									<description>backups older than {$ZBXDB_BKUP_MAX_INCR_AGE} ..... 
+Fires only after 2 hours to give SQL Server action scripts to run backups after a switch over.</description>
 									<manual_close>YES</manual_close>
 									<tags>
 										<tag>
@@ -2374,8 +2350,7 @@ and
 							<name>rman[{#OBJ_TYPE}] running longer than a  week  ago</name>
 							<priority>INFO</priority>
 							<description>status 5 == running
-6dagen terug en vergelijk met de max van de voorgaande 2dagen
-alert als 50% langer loopt</description>
+Running much longer than earlier</description>
 						</trigger_prototype>
 					</trigger_prototypes>
 					<graph_prototypes>
@@ -2473,7 +2448,7 @@ alert als 50% langer loopt</description>
 					<type>TRAP</type>
 					<key>service.lld</key>
 					<delay>0</delay>
-					<description>database servcie definitions</description>
+					<description>database service definitions</description>
 					<item_prototypes>
 						<item_prototype>
 							<name>service[{#PDB}_{#INST_NAME}_{#SERVICE_NAME}_sess]</name>
@@ -2773,7 +2748,7 @@ alert als 50% langer loopt</description>
 									<expression>{last(0)}&lt; {$ZBXDB_TS_WARN}</expression>
 									<name>u_ts[{#PDB},{#TS_NAME},pctfreeMAX]&lt; {$ZBXDB_TS_WARN}</name>
 									<priority>AVERAGE</priority>
-									<description>undo tablespace loopt bijna vol</description>
+									<description>undo tablespace almost filled up</description>
 									<dependencies>
 										<dependency>
 											<name>u_ts[{#PDB},{#TS_NAME},pctfreeMAX]&lt; {$ZBXDB_TS_HIGH}</name>
@@ -3040,7 +3015,7 @@ or
 									<expression>{last()}=4031</expression>
 									<name>zbxdb[query,{#SECTION},{#KEY}] shared pool vol (4031)</name>
 									<priority>WARNING</priority>
-									<description>query heeft een probleem vanwege ora-4031, unable to allocate from shared pool</description>
+									<description>Query got hit by ora-4031, unable to allocate from shared pool</description>
 								</trigger_prototype>
 								<trigger_prototype>
 									<expression>{last()}=1013
