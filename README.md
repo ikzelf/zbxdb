@@ -199,7 +199,7 @@ depending on the location of your monitoring host. It collects the files from th
 sends them in one session. Doing so makes the process pretty efficient, at the cost of a small delay.
 zbxdb_sender.py - c / etc/zabbix/zabbix_agentd.conf - z zbxdb_out
 Uses the agent configuration and makes it possible to use encryption. Using the agent configuration uses the
-ServerAcive adresses to send the data to
+**ServerActive** adresses to send the data to
 **Schedule this in the crontab, every minute.**
 
 # zbx_discover_oradbs.py
