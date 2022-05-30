@@ -77,8 +77,9 @@ If database drivers require separate  libraries to be installed, regretfully the
 For postgres follow https://yum.postgresql.org/repopackages.php#pg12 and choose Repo required OS version
 yum install postgresql12 postgresql12-devel
 
-For Oracle install latest Oracle Instant Client
+For Oracle install latest Oracle Instant Client (if using the cx_Oracle driver)
 https://oracle.github.io/odpi/doc/installation.html#oracle-instant-client-rpm
+Currently - 2022-05-30 - oracle supports both the classic cx_Oracle driver (that requires the instant client) as well as the thin oracledb driver (that no longer needs the instant client) see https://oracle.github.io/python-cx_Oracle/ and https://oracle.github.io/python-oracledb/ for more details.
 
 Also check the prerequistes for pyenv to work
 https://github.com/pyenv/pyenv/wiki#suggested-build-environment
