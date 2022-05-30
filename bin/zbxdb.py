@@ -38,7 +38,7 @@ from timeit import default_timer as timer
 
 import sqlparse
 
-VERSION = "3.00"
+VERSION = "3.01"
 
 
 def setup_logging(
