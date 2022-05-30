@@ -19,13 +19,10 @@ def db_errorcode(driver, excep):
     """pass exception code and message from various drivers in standard way"""
     LOGGER.debug('db_errorcode: %s\n', excep)
     LOGGER.debug('db_errorcode: args %s\n', excep.args)
-    # if str(excep.args[0]) == "sql_timeout":
-        # return fullname(excep), excep.args[0]
-    # _error, = excep.args
-    if len(excep.args) > 1:
-        return excep.args[0], str(excep.args[1])
-    else:
-        return 13, excep.args[0]
+    if str(excep.args[0]) == "sql_timeout":
+        return fullname(excep), excep.args[0]
+    _error, = excep.args
+    return _error.code, str(excep.args[0])
 
 def db_error_needs_new_session(driver, code):
     """some errors justify a new database connection. In that case return true
