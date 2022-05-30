@@ -22,7 +22,10 @@ def db_errorcode(driver, excep):
     if str(excep.args[0]) == "sql_timeout":
         return fullname(excep), excep.args[0]
     _error, = excep.args
-    return _error.code, str(excep.args[0])
+    if 'code' in dir(_error):
+        return _error.code, str(excep.args[0])
+    else:
+        return fullname(excep), excep.args[0]
 
 def db_error_needs_new_session(driver, code):
     """some errors justify a new database connection. In that case return true
