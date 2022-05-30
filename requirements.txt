@@ -8,3 +8,4 @@ pyOpenSSL>=19.1.0
 pypsrp>=0.4.0
 python-tds>=1.9.1
 sqlparse>=0.2.4
+oracledb>=1.0.0
