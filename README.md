@@ -110,6 +110,8 @@ section with 'discover' in their name have a special meaning, the return json ar
 - [Oracle 19c ASM](etc/zbxdb_checks/oracle/asm.19.cfg)
 - [Oracle 19c standby](etc/zbxdb_checks/oracle/standby.19.cfg)
 - [Oracle 19c](etc/zbxdb_checks/oracle/primary.19.cfg)
+- [Oracle 21c standby](etc/zbxdb_checks/oracle/standby.21.cfg)
+- [Oracle 21c](etc/zbxdb_checks/oracle/primary.21.cfg)
 - [SAPhana](etc/zbxdb_checks/SAPhana/primary.2.cfg)
 - [SQL Server 2012](etc/zbxdb_checks/mssql/primary.11.cfg)
 - [SQL Server 2016](etc/zbxdb_checks/mssql/primary.13.cfg)
