@@ -86,11 +86,9 @@ def connect_string(config):
 def connect(_db, _c):
     """the actual connect"""
 
-    if _c['role'].upper() == "SYSASM":
-        _c['omode'] = _db.SYSASM
+    if _c['role'].upper() != 'NORMAL':
+        _c['omode'] = getattr(_db, _c['role'])
 
-    if _c['role'].upper() == "SYSDBA":
-        _c['omode'] = _db.SYSDBA
     LOGGER.debug("Connecting %s as %s",
                  connect_string(_c).replace(_c['password'], '*X*X*X*'), _c['role'])
     try:

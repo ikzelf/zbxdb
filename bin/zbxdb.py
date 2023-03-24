@@ -19,7 +19,6 @@
 import base64
 import collections
 import configparser
-from cryptography.fernet import Fernet, InvalidToken
 from datetime import datetime
 import gc
 import importlib
@@ -36,6 +35,7 @@ from argparse import ArgumentParser
 # from pdb import set_trace
 from timeit import default_timer as timer
 
+from cryptography.fernet import Fernet, InvalidToken
 import sqlparse
 
 VERSION = "3.01"
